@@ -1,5 +1,16 @@
 # @spaceteams/warp-pino
 
+## 0.2.0
+
+### Minor Changes
+
+- 43bd2ef: reordered the generics so we can cleanly support scope context induced by middleware
+
+### Patch Changes
+
+- Updated dependencies [43bd2ef]
+  - @spaceteams/warp@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
