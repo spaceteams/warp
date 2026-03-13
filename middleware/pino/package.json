@@ -1,6 +1,7 @@
 {
   "name": "@spaceteams/warp-pino",
   "version": "0.0.0",
+  "description": "Pino logger middleware for Warp",
   "type": "module",
   "files": [
     "dist"
@@ -28,5 +29,18 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spaceteams/warp.git",
+    "directory": "middleware/pino"
+  },
+  "keywords": [
+    "warp",
+    "middleware",
+    "pino",
+    "logger",
+    "logging"
+  ],
+  "license": "MIT"
 }

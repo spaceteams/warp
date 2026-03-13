@@ -1,12 +1,16 @@
 {
   "name": "@spaceteams/warp",
   "version": "0.0.0",
+  "description": "Type-safe composition with execution scopes ",
   "type": "module",
   "files": [
     "dist"
   ],
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -22,5 +26,21 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spaceteams/warp.git",
+    "directory": "warp"
+  },
+  "keywords": [
+    "dependency-injection",
+    "composition",
+    "context",
+    "runtime",
+    "middleware",
+    "typescript",
+    "request-scoped",
+    "dependency-graph"
+  ],
+  "license": "MIT"
 }
