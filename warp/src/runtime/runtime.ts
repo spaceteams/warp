@@ -3,6 +3,7 @@ import { defineClassComponent } from "../component/class-component";
 import { defineFunctionalComponent } from "../component/functional-component";
 import type { Middleware } from "../middleware";
 import { createResolver } from "./create-resolver";
+import { type ExplainResult, explain, toAsciiTree, toMermaid } from "./explain";
 
 type SafeIntersect<A, B> = A extends undefined ? B : A & B;
 type OptionalArg<A> = A extends undefined ? [] : [A];
@@ -44,7 +45,6 @@ export class Runtime<
     >(this.middleware, this.ctx);
   }
 
-  // this should work when destructuring the runtime object, so we use a lambda here
   public resolve = <Deps, Out>(
     component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
     ...requirements: OptionalArg<Requirements>
@@ -60,5 +60,38 @@ export class Runtime<
 
   get classComponent() {
     return defineClassComponent<SafeIntersect<Requirements, ActualContext>, RunOptions>();
+  }
+
+  // Overloads for explain method with format parameter
+  public explain<Deps, Out>(
+    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    format: "native",
+  ): ExplainResult;
+  public explain<Deps, Out>(
+    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    format: "ascii",
+  ): string;
+  public explain<Deps, Out>(
+    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    format: "mermaid",
+  ): string;
+  public explain<Deps, Out>(
+    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+  ): ExplainResult;
+
+  // Implementation
+  public explain<Deps, Out>(
+    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    format: "native" | "ascii" | "mermaid" = "native",
+  ): ExplainResult | string {
+    const result = explain(component);
+    switch (format) {
+      case "ascii":
+        return toAsciiTree(result);
+      case "mermaid":
+        return toMermaid(result);
+      case "native":
+        return result;
+    }
   }
 }
