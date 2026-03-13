@@ -1,16 +1,16 @@
-import type { Middleware, NoScopeContext } from "../middleware";
+import type { Middleware } from "../middleware";
 import { Runtime } from "./runtime";
 
-export class RuntimeBuilder<AmbientContext, Options, ScopeContext = NoScopeContext> {
+export class RuntimeBuilder<AmbientContext, ScopeContext = unknown, Options = unknown> {
   private readonly middlewares: Middleware<AmbientContext, Options, ScopeContext>[];
 
   constructor(middlewares: Middleware<AmbientContext, Options, ScopeContext>[] = []) {
     this.middlewares = middlewares;
   }
 
-  use<A, H, S>(
+  use<A, S, H>(
     mw: Middleware<A, H, S>,
-  ): RuntimeBuilder<AmbientContext & A, Options & H, ScopeContext & S> {
+  ): RuntimeBuilder<AmbientContext & A, ScopeContext & S, Options & H> {
     const mws = [...this.middlewares, mw] as Middleware<
       AmbientContext & A,
       Options & H,

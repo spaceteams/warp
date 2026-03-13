@@ -1,10 +1,12 @@
 import type { Component } from "../component";
 
 export type ExplainResult = { name: string | undefined; deps?: Record<string, ExplainResult> };
-export const explain = <Ctx, RunOptions, Deps, Out>(c: Component<Ctx, RunOptions, Deps, Out>) => {
+export const explain = <Ctx, ScopeCtx, RunOptions, Deps, Out>(
+  c: Component<Ctx, ScopeCtx, RunOptions, Deps, Out>,
+) => {
   const deps: Record<string, ExplainResult> = {};
   for (const [key, comp] of Object.entries(c.deps ?? {})) {
-    deps[key] = explain(comp as Component<unknown, unknown, unknown, unknown>);
+    deps[key] = explain(comp as Component<unknown, unknown, unknown, unknown, unknown>);
   }
   return {
     name: c.name,
