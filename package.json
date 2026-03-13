@@ -10,7 +10,7 @@
     "lint:fix": "turbo run lint:fix",
     "format": "turbo run format",
     "format:check": "turbo run format:check",
-    "check": "turbo run lint format:check typecheck build",
+    "check": "turbo run test lint format:check typecheck build",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "changeset publish"

@@ -2,11 +2,11 @@ import { type Component, type ComponentInput, isComponent } from "../component";
 import type { Middleware } from "../middleware";
 import type { Run } from "../run";
 
-export function createResolver<AmbientContext, ScopeContext, Options>(
-  mw: Middleware<AmbientContext, Options, ScopeContext>,
+export function createResolver<AmbientContext, ScopeContext, RunOptions>(
+  mw: Middleware<AmbientContext, RunOptions, ScopeContext>,
 ) {
   return <Deps, Out>(
-    root: Component<AmbientContext, Options, Deps, Out>,
+    root: Component<AmbientContext, ScopeContext, RunOptions, Deps, Out>,
     ctx: AmbientContext,
   ): Out => {
     const stack: string[] = [];
@@ -40,10 +40,10 @@ export function createResolver<AmbientContext, ScopeContext, Options>(
     };
 
     const defineDependencyProperty = (
-      target: Run<AmbientContext, Options, ScopeContext>,
+      target: Run<AmbientContext, ScopeContext, RunOptions>,
       depName: string,
       depPath: string,
-      depComp: ComponentInput<AmbientContext, Options, unknown>,
+      depComp: ComponentInput<AmbientContext, ScopeContext, RunOptions, unknown>,
       scopeCtx: AmbientContext & ScopeContext,
       cache: Map<string, unknown>,
     ): void => {
@@ -65,8 +65,8 @@ export function createResolver<AmbientContext, ScopeContext, Options>(
     };
 
     const attachDependencies = (
-      runCtx: Run<AmbientContext, Options, ScopeContext>,
-      deps: Record<string, ComponentInput<AmbientContext, Options, unknown>>,
+      runCtx: Run<AmbientContext, ScopeContext, RunOptions>,
+      deps: Record<string, ComponentInput<AmbientContext, ScopeContext, RunOptions, unknown>>,
       scopeCtx: AmbientContext & ScopeContext,
       pathPrefix: string,
       cache: Map<string, unknown>,
@@ -79,7 +79,7 @@ export function createResolver<AmbientContext, ScopeContext, Options>(
 
     const createBaseRunContext = (
       scopeCtx: AmbientContext & ScopeContext,
-    ): Run<AmbientContext, Options, ScopeContext> => {
+    ): Run<AmbientContext, ScopeContext, RunOptions> => {
       return {
         ...scopeCtx,
         run: (nestedOptions, nestedInner) => runWithContext(scopeCtx, nestedOptions, nestedInner),
@@ -87,7 +87,7 @@ export function createResolver<AmbientContext, ScopeContext, Options>(
     };
 
     const bindInScope = (
-      comp: ComponentInput<AmbientContext, Options, unknown>,
+      comp: ComponentInput<AmbientContext, ScopeContext, RunOptions, unknown>,
       scopeCtx: AmbientContext & ScopeContext,
       path: string,
     ): unknown => {
@@ -104,19 +104,21 @@ export function createResolver<AmbientContext, ScopeContext, Options>(
 
     const makeRootRunContext = (
       scopeCtx: AmbientContext & ScopeContext,
-    ): Run<AmbientContext & ScopeContext & Deps, Options, ScopeContext> => {
+    ): Run<AmbientContext & ScopeContext & Deps, ScopeContext, RunOptions> => {
       const rootCache = new Map<string, unknown>();
       const runCtx = createBaseRunContext(scopeCtx);
 
       attachDependencies(runCtx, root.deps ?? {}, scopeCtx, "", rootCache);
 
-      return runCtx as Run<AmbientContext & ScopeContext & Deps, Options>;
+      return runCtx as Run<AmbientContext & ScopeContext & Deps, ScopeContext, RunOptions>;
     };
 
     const runWithContext = async <T>(
       currentCtx: AmbientContext & ScopeContext,
-      options: Options,
-      inner: (runApp: Run<AmbientContext & ScopeContext, Options, ScopeContext>) => Promise<T> | T,
+      options: RunOptions,
+      inner: (
+        runApp: Run<AmbientContext & ScopeContext, ScopeContext, RunOptions>,
+      ) => Promise<T> | T,
     ): Promise<T> => {
       return await mw(currentCtx, options, (scopedCtx) => {
         return inner(makeRootRunContext(scopedCtx));

@@ -16,7 +16,7 @@ export class Runtime<
   Requirements = undefined,
 > {
   private readonly resolveFn: <Deps, Out>(
-    root: Component<Ctx, RunOptions, Deps, Out>,
+    root: Component<Ctx, ScopeContext, RunOptions, Deps, Out>,
     ctx: Ctx,
   ) => Out | Promise<Out>;
   constructor(
@@ -46,42 +46,86 @@ export class Runtime<
   }
 
   public resolve = <Deps, Out>(
-    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    component: Component<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions,
+      Deps,
+      Out
+    >,
     ...requirements: OptionalArg<Requirements>
   ) => {
     const req = requirements[0] as Requirements | undefined;
     const ctx = req ? { ...this.ctx, ...(req as object) } : { ...this.ctx };
-    return this.resolveFn(component as Component<Ctx, RunOptions, Deps, Out>, ctx);
+    return this.resolveFn(component as Component<Ctx, ScopeContext, RunOptions, Deps, Out>, ctx);
   };
 
   get component() {
-    return defineFunctionalComponent<SafeIntersect<Requirements, ActualContext>, RunOptions>();
+    return defineFunctionalComponent<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions
+    >();
   }
 
   get classComponent() {
-    return defineClassComponent<SafeIntersect<Requirements, ActualContext>, RunOptions>();
+    return defineClassComponent<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions
+    >();
   }
 
   // Overloads for explain method with format parameter
   public explain<Deps, Out>(
-    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    component: Component<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions,
+      Deps,
+      Out
+    >,
     format: "native",
   ): ExplainResult;
   public explain<Deps, Out>(
-    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    component: Component<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions,
+      Deps,
+      Out
+    >,
     format: "ascii",
   ): string;
   public explain<Deps, Out>(
-    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    component: Component<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions,
+      Deps,
+      Out
+    >,
     format: "mermaid",
   ): string;
   public explain<Deps, Out>(
-    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    component: Component<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions,
+      Deps,
+      Out
+    >,
   ): ExplainResult;
 
   // Implementation
   public explain<Deps, Out>(
-    component: Component<SafeIntersect<Requirements, ActualContext>, RunOptions, Deps, Out>,
+    component: Component<
+      SafeIntersect<Requirements, ActualContext>,
+      ScopeContext,
+      RunOptions,
+      Deps,
+      Out
+    >,
     format: "native" | "ascii" | "mermaid" = "native",
   ): ExplainResult | string {
     const result = explain(component);

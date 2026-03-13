@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ComponentRef } from "../component";
 import { defineFunctionalComponent } from "../component/functional-component";
-import type { Middleware, NoRunOptions } from "../middleware";
+import type { Middleware, NoRunOptions, NoScopeContext } from "../middleware";
 import { createResolver } from "./create-resolver";
 
 function noop<Ctx>(): Middleware<Ctx> {
@@ -14,7 +14,7 @@ function levelMiddleware(): Middleware<{ level: number }> {
 it("passes ctx through a tower of run calls", () => {
   const ctx = { resource: "1" };
   const resolve = createResolver(noop<typeof ctx>());
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const root = resolve(
     comp((a) => a),
     ctx,
@@ -31,7 +31,7 @@ it("passes ctx through a tower of run calls", () => {
 it("applies middleware in run calls", () => {
   const ctx = { level: 0 };
   const resolve = createResolver(levelMiddleware());
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const root = resolve(
     comp((a) => a),
     ctx,
@@ -48,7 +48,7 @@ it("applies middleware in run calls", () => {
 it("creates dependencies", () => {
   const ctx = { level: 0 };
   const resolve = createResolver(levelMiddleware());
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const repo = comp((a) => a);
   const root = resolve(
     comp((a) => a, { repo }),
@@ -64,7 +64,7 @@ it("creates dependencies lazily", () => {
   const onCreate = vi.fn();
   const ctx = { level: 0 };
   const resolve = createResolver(levelMiddleware());
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const repo = comp((a) => {
     onCreate("repo", a.level);
     return a;
@@ -110,11 +110,11 @@ it("detects direct cyclic dependencies", async () => {
   const ctx = { level: 0 };
   const resolve = createResolver(noop<typeof ctx>());
 
-  const component = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const component = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
 
   const compA = component(
     (run) => run.b,
-    {} as { b: ComponentRef<typeof ctx, NoRunOptions, unknown> },
+    {} as { b: ComponentRef<typeof ctx, NoScopeContext, NoRunOptions, unknown> },
   );
   const compB = component((run) => run.a, { a: compA });
   compA.deps = { b: compB };
@@ -125,16 +125,16 @@ it("detects direct cyclic dependencies", async () => {
 it("detects indirect cyclic dependencies", () => {
   const ctx = { level: 0 };
   const resolve = createResolver(noop<typeof ctx>());
-  const component = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const component = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
 
   const compA = component(
     (run) => run.b,
-    {} as { b: ComponentRef<typeof ctx, NoRunOptions, unknown> },
+    {} as { b: ComponentRef<typeof ctx, NoScopeContext, NoRunOptions, unknown> },
   );
 
   const compB = component(
     (run) => run.c,
-    {} as { c: ComponentRef<typeof ctx, NoRunOptions, unknown> },
+    {} as { c: ComponentRef<typeof ctx, NoScopeContext, NoRunOptions, unknown> },
   );
 
   const compC = component((run) => run.a, { a: compA });
@@ -149,11 +149,11 @@ it("detects self-dependency cycles", () => {
   const ctx = { level: 0 };
   const resolve = createResolver(noop<typeof ctx>());
 
-  const component = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const component = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
 
   const compA = component(
     (run) => run.self,
-    {} as { self: ComponentRef<typeof ctx, NoRunOptions, unknown> },
+    {} as { self: ComponentRef<typeof ctx, NoScopeContext, NoRunOptions, unknown> },
   );
 
   compA.deps = { self: compA };
@@ -166,7 +166,7 @@ it("resolves nested dependencies", async () => {
   const ctx = { level: 0 };
   const resolve = createResolver(levelMiddleware());
 
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const connection = comp((a) => {
     onCreate("connection", a.level);
     return a;
@@ -258,7 +258,7 @@ it("caches dependencies within the same scope", async () => {
   const ctx = { level: 0 };
   const resolve = createResolver(noop<typeof ctx>());
 
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const repo = comp((a) => {
     onCreate("repo", a.level);
     return a;
@@ -272,7 +272,7 @@ it("caches dependencies within the same scope", async () => {
     { repo },
   );
 
-  const result = await resolve(root, ctx);
+  const result = resolve(root, ctx);
 
   expect(onCreate).toHaveBeenCalledTimes(1);
   expect(onCreate.mock.calls).toEqual([["root", 0]]);
@@ -297,7 +297,7 @@ it("creates new dependency instances in different scopes", () => {
   const ctx = { level: 0 };
   const resolve = createResolver(levelMiddleware());
 
-  const comp = defineFunctionalComponent<typeof ctx, NoRunOptions>();
+  const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, NoRunOptions>();
   const repo = comp((a) => a);
   const root = comp((a) => a, { repo });
 
@@ -354,7 +354,7 @@ describe("option propagation", () => {
     const ctx = { level: 0 } as CtxType;
     const resolve = createResolver(optionsCapturingMiddleware(receivedOptions));
 
-    const comp = defineFunctionalComponent<typeof ctx, OptionType>();
+    const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, OptionType>();
     const root = comp((a) => a);
 
     const result = resolve(root, ctx);
@@ -394,7 +394,7 @@ describe("option propagation", () => {
 
     const ctx = { level: 0 } as CtxType;
     const resolve = createResolver(optionsCapturingMiddleware(middlewareOptions));
-    const comp = defineFunctionalComponent<typeof ctx, OptionType>();
+    const comp = defineFunctionalComponent<typeof ctx, NoScopeContext, OptionType>();
     const repo = comp((a) => {
       receivedOptions.push({ component: "repo", options: a.options });
       return a;

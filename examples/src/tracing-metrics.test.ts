@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 type TraceOptions = { spanName: string };
 type Ctx = { sink: string[] };
 
-const tracing = (): Middleware<Ctx, TraceOptions, Ctx & { span: string }> => {
+const tracing = (): Middleware<Ctx, TraceOptions, { span: string }> => {
   return async (ctx, hints, next) => {
     ctx.sink.push(`start:${hints.spanName}`);
     try {
@@ -30,13 +30,13 @@ const repo = () => (id: string) => `repo:${id}`;
 
 type Deps = { repo: ReturnType<typeof repo> };
 
-const useCase = (ctx: Run<Ctx & Deps, TraceOptions, { span: string }>) => async () => {
+const useCase = (ctx: Run<Ctx & Deps, { span: string }, TraceOptions>) => async () => {
   const result = [ctx.repo("outer")];
   // `ctx.run(...)` creates a nested scope in which middleware receives the
   // provided hints (`{ spanName: "inner-work" }`). The tracing middleware
   // records start/end for that nested scope only.
   await ctx.run({ spanName: "inner-work" }, async (inner) => {
-    result.push(inner.repo(inner.span ?? "no-span"));
+    result.push(inner.repo(inner.span));
   });
   return result;
 };
