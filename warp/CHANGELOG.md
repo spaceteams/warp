@@ -1,5 +1,11 @@
 # @spaceteams/warp
 
+## 0.2.0
+
+### Minor Changes
+
+- 43bd2ef: reordered the generics so we can cleanly support scope context induced by middleware
+
 ## 0.1.1
 
 ### Patch Changes
