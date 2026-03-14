@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { usecaseFactory } from "../semantic/usecase-factory";
 import { RuntimeBuilder } from "./runtime-builder";
 
 const { component, explain } = new RuntimeBuilder().provide({ context: "1" });
@@ -7,9 +8,8 @@ const prices = component(() => null, {});
 const service = component(() => null, { products, prices }, { name: "MyService" });
 const anotherService = component(() => null, { products });
 const controller = component(
-  () => null,
+  usecaseFactory({ name: "MyController" }, () => async () => null),
   { service, anotherService, prices },
-  { name: "MyController" },
 );
 
 it("explains with ascii format", () => {

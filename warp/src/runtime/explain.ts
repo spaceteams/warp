@@ -9,7 +9,7 @@ export const explain = <Ctx, ScopeCtx, RunOptions, Deps, Out>(
     deps[key] = explain(comp as Component<unknown, unknown, unknown, unknown, unknown>);
   }
   return {
-    name: c.name,
+    name: c.meta?.name,
     deps,
   };
 };

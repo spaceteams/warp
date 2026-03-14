@@ -1,5 +1,5 @@
 import type { Run } from "../run";
-import type { Component, ComponentFactory, ComponentInput, ComponentRef } from ".";
+import type { Component, ComponentFactory, ComponentInput, ComponentMeta, ComponentRef } from ".";
 import { brandComponent } from ".";
 
 export function defineClassComponent<Ctx, ScopeContext, RunOptions>() {
@@ -11,7 +11,7 @@ export function defineClassComponent<Ctx, ScopeContext, RunOptions>() {
   >(
     ctor: Ctor,
     deps?: { [K in keyof Deps]: ComponentInput<Ctx, ScopeContext, RunOptions, Deps[K]> },
-    opts?: { name?: string },
+    meta?: ComponentMeta,
   ): Component<Ctx, ScopeContext, RunOptions, Deps, InstanceType<Ctor>> => {
     const factory: ComponentFactory<Ctx, ScopeContext, RunOptions, Deps, InstanceType<Ctor>> = (
       ctx,
@@ -24,7 +24,11 @@ export function defineClassComponent<Ctx, ScopeContext, RunOptions>() {
       deps: deps as {
         [K in keyof Deps]: ComponentRef<Ctx, ScopeContext, RunOptions, Deps[K]>;
       },
-      name: opts?.name ?? ctor.name,
+      meta: {
+        name: (meta?.name ?? factory.meta?.name) || undefined,
+        tags: (meta?.tags ?? factory.meta?.tags) || undefined,
+        kind: (meta?.kind ?? factory.meta?.kind) || undefined,
+      },
     });
   };
 }
