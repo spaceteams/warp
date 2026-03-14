@@ -1,4 +1,4 @@
-import { buildRuntime, type Middleware, type NoScopeContext, type Run } from "@spaceteams/warp";
+import { buildRuntime, type Middleware, usecaseFactory } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Transactions example
@@ -37,17 +37,20 @@ type Deps = {
   inventoryRepo: ReturnType<typeof inventoryRepo>;
 };
 
-const checkout = (ctx: Run<Ctx & Deps, NoScopeContext, TxOptions>) => async () => {
-  // The outer step uses the outer DB client.
-  const outerStep = ctx.orderRepo.save("o-1");
-  // Inner run requests a different isolation level and thus receives a modified db.
-  const innerSteps = await ctx.run({ isolation: "serializable" }, async (inner) => {
-    const step1 = inner.orderRepo.save("o-2");
-    const step2 = inner.inventoryRepo.reserve("sku-1");
-    return [step1, step2];
-  });
-  return [outerStep, ...innerSteps];
-};
+const checkout = usecaseFactory<Ctx & Deps, [], string[], TxOptions>(
+  { name: "checkout" },
+  (ctx) => async () => {
+    // The outer step uses the outer DB client.
+    const outerStep = ctx.orderRepo.save("o-1");
+    // Inner run requests a different isolation level and thus receives a modified db.
+    const innerSteps = await ctx.run({ isolation: "serializable" }, async (inner) => {
+      const step1 = inner.orderRepo.save("o-2");
+      const step2 = inner.inventoryRepo.reserve("sku-1");
+      return [step1, step2];
+    });
+    return [outerStep, ...innerSteps];
+  },
+);
 
 describe("transactions", async () => {
   const { resolve, component } = buildRuntime()

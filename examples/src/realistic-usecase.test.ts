@@ -1,4 +1,4 @@
-import { buildRuntime } from "@spaceteams/warp";
+import { buildRuntime, usecaseFactory } from "@spaceteams/warp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Realistic use case
@@ -48,21 +48,29 @@ type UseCaseDeps = {
   pricingService: PricingService;
 };
 
-const createOffer = (ctx: Ctx & UseCaseDeps) => (customerId: string, productId: string) => {
-  const customer = ctx.customerRepo(customerId);
-  if (!customer.active) {
-    throw new Error("inactive customer");
-  }
-
-  const price = ctx.pricingService.calculate(productId);
-  ctx.logger.info(`user ${ctx.userId} created offer for ${customerId}`);
-
-  return {
-    customerId,
-    price,
-    createdBy: ctx.userId,
-  };
+type Offer = {
+  customerId: string;
+  price: number;
+  createdBy: string;
 };
+const createOffer = usecaseFactory<Ctx & UseCaseDeps, [string, string], Offer>(
+  { name: "create-offer" },
+  (ctx) => async (customerId, productId) => {
+    const customer = ctx.customerRepo(customerId);
+    if (!customer.active) {
+      throw new Error("inactive customer");
+    }
+
+    const price = ctx.pricingService.calculate(productId);
+    ctx.logger.info(`user ${ctx.userId} created offer for ${customerId}`);
+
+    return {
+      customerId,
+      price,
+      createdBy: ctx.userId,
+    };
+  },
+);
 
 describe("realistic usecase", () => {
   beforeEach(() => {
@@ -95,7 +103,7 @@ describe("realistic usecase", () => {
       config: { pricingMode: "gross" },
     });
 
-    const calculation = serviceInstance("customer-1", "product-1");
+    const calculation = await serviceInstance("customer-1", "product-1");
     expect(calculation).toEqual({
       createdBy: "current-user",
       customerId: "customer-1",
@@ -110,7 +118,7 @@ describe("realistic usecase", () => {
       config: { pricingMode: "net" },
     });
 
-    const calculation = serviceInstance("customer-2", "product-1");
+    const calculation = await serviceInstance("customer-2", "product-1");
     expect(calculation).toEqual({
       createdBy: "current-user",
       customerId: "customer-2",
