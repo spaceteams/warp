@@ -1,4 +1,4 @@
-import { buildRuntime, type Middleware, usecaseFactory } from "@spaceteams/warp";
+import { buildRuntime, type Middleware, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Tracing / metrics example
@@ -30,7 +30,7 @@ const repo = () => (id: string) => `repo:${id}`;
 
 type Deps = { repo: ReturnType<typeof repo> };
 
-const useCase = usecaseFactory<Ctx & Deps, [], string[], TraceOptions, { span: string }>(
+const callTraced = usecase<Ctx & Deps, [], string[], TraceOptions, { span: string }>(
   { name: "usecase", spanName: "usecase" },
   (ctx) => async () => {
     const result = [ctx.repo("outer")];
@@ -51,7 +51,7 @@ describe("tracing", () => {
 
   it("applies isolation levels per scope as requested", async () => {
     const instance = await resolve(
-      component(useCase, {
+      component(callTraced, {
         repo: component(repo),
       }),
     );

@@ -5,9 +5,9 @@ import { brandComponent } from ".";
 export function defineClassComponent<Ctx, ScopeContext, RunOptions>() {
   return <
     Deps,
-    Ctor extends new (
+    Ctor extends (new (
       deps: Run<Ctx & Deps, ScopeContext, RunOptions>,
-    ) => InstanceType<Ctor>,
+    ) => InstanceType<Ctor>) & { meta?: ComponentMeta },
   >(
     ctor: Ctor,
     deps?: { [K in keyof Deps]: ComponentInput<Ctx, ScopeContext, RunOptions, Deps[K]> },
@@ -25,9 +25,9 @@ export function defineClassComponent<Ctx, ScopeContext, RunOptions>() {
         [K in keyof Deps]: ComponentRef<Ctx, ScopeContext, RunOptions, Deps[K]>;
       },
       meta: {
-        name: (meta?.name ?? factory.meta?.name) || undefined,
-        tags: (meta?.tags ?? factory.meta?.tags) || undefined,
-        kind: (meta?.kind ?? factory.meta?.kind) || undefined,
+        name: (meta?.name ?? ctor.meta?.name) || undefined,
+        tags: (meta?.tags ?? ctor.meta?.tags) || undefined,
+        kind: (meta?.kind ?? ctor.meta?.kind) || undefined,
       },
     });
   };

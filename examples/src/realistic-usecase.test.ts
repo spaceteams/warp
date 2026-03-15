@@ -1,4 +1,4 @@
-import { buildRuntime, usecaseFactory } from "@spaceteams/warp";
+import { buildRuntime, type ComponentMeta, repo, usecase } from "@spaceteams/warp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Realistic use case
@@ -11,28 +11,32 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // - Passing real runtime values like logger and userId into components.
 // - Keeping factories small (e.g. `customerRepo`) and composing them with
 //   higher-level services (e.g. `PricingService`).
-//
-// If you understand the simple example, focus on:
-// - `classComponent` usage (here we use the runtime helper that creates a
-//   class instance when the component is resolved).
-// - How `defaultRuntime.with({...})` is reused across tests and how further
-//   per-test `.with({...})` calls override values for a single test.
+// - use of the semantic helpers 'repo' and 'service' and explaining a graph
 type Ctx = {
   userId: string;
   logger: { info: (msg: string) => void };
   config: { pricingMode: "gross" | "net" };
 };
 
-const customerRepo = () => (customerId: string) => ({
-  id: customerId,
-  active: true,
-});
+const customerRepo = repo(
+  { name: "customer-repo", tags: ["customer"] },
+  () => (customerId: string) => ({
+    id: customerId,
+    active: true,
+  }),
+);
 type CustomerRepo = ReturnType<typeof customerRepo>;
 
-const priceRepo = () => (_productId: string) => 100;
+const priceRepo = repo({ name: "price-repo" }, () => (_productId: string) => 100);
 type PriceRepo = ReturnType<typeof priceRepo>;
 
 class PricingService {
+  // classes can communicate meta information via static members
+  static meta: ComponentMeta = {
+    name: "price-service",
+    kind: "service" as const,
+  };
+
   // The class receives only the part of the context it needs. We use `Pick`
   // to highlight that a class can be typed to its required slice of context.
   constructor(private readonly ctx: Pick<Ctx, "config"> & { priceRepo: PriceRepo }) {}
@@ -43,17 +47,17 @@ class PricingService {
   }
 }
 
+// creating a more complex usecase can be made more readable by pulling out type defintions
 type UseCaseDeps = {
   customerRepo: CustomerRepo;
   pricingService: PricingService;
 };
-
 type Offer = {
   customerId: string;
   price: number;
   createdBy: string;
 };
-const createOffer = usecaseFactory<Ctx & UseCaseDeps, [string, string], Offer>(
+const createOffer = usecase<Ctx & UseCaseDeps, [string, string], Offer>(
   { name: "create-offer" },
   (ctx) => async (customerId, productId) => {
     const customer = ctx.customerRepo(customerId);
@@ -77,11 +81,11 @@ describe("realistic usecase", () => {
     vi.clearAllMocks();
   });
 
-  // Create a default runtime with some global defaults (e.g. config).
-  // Tests then call `.provide({...})` to provide ambient context
-  // and require each request (test) to define userId and config.
+  // build a runtime:
+  // - provide ambient context (e.g. logger)
+  // - require some request context when resolving (userId, config)
   const info = vi.fn();
-  const { resolve, component, classComponent } = buildRuntime()
+  const { explain, resolve, component, classComponent } = buildRuntime()
     .provide({
       logger: { info },
     })
@@ -90,11 +94,21 @@ describe("realistic usecase", () => {
       config: { pricingMode: "gross" | "net" };
     }>();
 
+  // use the component and classComponent methods from the runtime to wire togher the execution graph
   const graph = component(createOffer, {
     customerRepo: component(customerRepo),
     pricingService: classComponent(PricingService, {
       priceRepo: component(priceRepo),
     }),
+  });
+
+  it("can be explained", () => {
+    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
+      "└── create-offer [usecase]
+          ├── customerRepo -> customer-repo [repo] {customer}
+          └── pricingService -> price-service [service]
+              └── priceRepo -> price-repo [repo]"
+    `);
   });
 
   it("calculates gross price", async () => {

@@ -11,7 +11,7 @@ export type ComponentRef<Ctx, ScopeContext, RunOptions, Out> = {
   readonly __out?: Out;
 };
 
-export type ComponentKind = "repo" | "service" | "usecase";
+export type ComponentKind = "repo" | "service" | "usecase" | "client";
 
 export type ComponentMeta = {
   name?: string;

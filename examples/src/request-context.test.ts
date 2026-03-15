@@ -1,4 +1,4 @@
-import { buildRuntime, usecaseFactory } from "@spaceteams/warp";
+import { buildRuntime, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Request context example
@@ -23,8 +23,8 @@ const repo = (ctx: Ctx) => (id: string) => {
 };
 type Repo = ReturnType<typeof repo>;
 
-const usecase = usecaseFactory<Ctx & { repo: Repo }, [string?], string>(
-  { name: "use-case" },
+const callWithUserId = usecase<Ctx & { repo: Repo }, [string?], string>(
+  { name: "callWithUserId" },
   (ctx) => async (id) => {
     // If no `id` is provided we use the current request user id from context.
     const result = ctx.repo(id ?? ctx.userId);
@@ -39,7 +39,14 @@ describe("request context", () => {
 
   // Define the component graph using the runtime's component helper.
   const { component } = runtime;
-  const graph = component(usecase, { repo: component(repo) });
+  const graph = component(callWithUserId, { repo: component(repo) });
+
+  it("can be explained", () => {
+    expect(runtime.explain(graph, "ascii", true)).toMatchInlineSnapshot(`
+      "└── callWithUserId [usecase]
+          └── repo"
+    `);
+  });
 
   it("reads argument", async () => {
     // Resolve the service with an explicit userId argument. This

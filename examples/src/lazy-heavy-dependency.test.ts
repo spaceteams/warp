@@ -1,4 +1,10 @@
-import { buildRuntime, type InferUsecase, usecaseFactory } from "@spaceteams/warp";
+import {
+  buildRuntime,
+  client,
+  type InferClient,
+  type InferUsecase,
+  usecase,
+} from "@spaceteams/warp";
 import { beforeEach, describe, expect, it } from "vitest";
 
 // Lazy / heavy dependency example
@@ -7,27 +13,19 @@ import { beforeEach, describe, expect, it } from "vitest";
 // can defer creating expensive resources until they are actually needed.
 // The heavyPdfClient factory increments a counter when constructed so tests
 // can assert whether the heavy dependency was created or not.
-//
-// Key points for the reader (you already know the basics from simple-service):
-// - Component factories are just functions. Returning an object from a factory
-//   still gives you control over when that factory is invoked.
-// - The runtime composes components but does not force creation of every
-//   dependency eagerly — creation can be deferred to when the service actually
-//   uses the dependency (lazy behavior).
 let heavyCreated = 0;
 
-const heavyPdfClient = () => {
+const heavyPdfClient = client({ name: "heavy-client" }, () => {
   heavyCreated++;
   return {
     render: (content: string) => `pdf:${content}`,
   };
-};
-
-type HeavyPdfClient = ReturnType<typeof heavyPdfClient>;
+});
+type HeavyPdfClient = InferClient<typeof heavyPdfClient>;
 
 type Deps = { heavyPdfClient: HeavyPdfClient };
 
-const generatePreview = usecaseFactory<Deps, ["text" | "pdf"], string>(
+const generatePreview = usecase<Deps, ["text" | "pdf"], string>(
   { name: "generate-preview" },
   (ctx) => async (mode) => {
     if (mode === "text") {
@@ -41,7 +39,7 @@ const generatePreview = usecaseFactory<Deps, ["text" | "pdf"], string>(
 type GeneratePreview = InferUsecase<typeof generatePreview>;
 
 describe("lazy dependencies", () => {
-  const { resolve, component } = buildRuntime().provide({});
+  const { explain, resolve, component } = buildRuntime().provide({});
   const graph = component(generatePreview, {
     heavyPdfClient: component(heavyPdfClient),
   });
@@ -51,6 +49,13 @@ describe("lazy dependencies", () => {
   beforeEach(async () => {
     generate = await resolve(graph);
     heavyCreated = 0;
+  });
+
+  it("can be explained", () => {
+    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
+        "└── generate-preview [usecase]
+            └── heavyPdfClient -> heavy-client [client]"
+      `);
   });
 
   it("does not create heavy dependency when not needed", async () => {

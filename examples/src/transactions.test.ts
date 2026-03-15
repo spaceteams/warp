@@ -1,4 +1,4 @@
-import { buildRuntime, type Middleware, usecaseFactory } from "@spaceteams/warp";
+import { buildRuntime, type Middleware, repo, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Transactions example
@@ -24,20 +24,20 @@ function transaction(): Middleware<Ctx, TxOptions> {
     });
 }
 
-const orderRepo = (ctx: Ctx) => ({
+const orderRepo = repo({ name: "order-repo" }, (ctx: Ctx) => ({
   save: (orderId: string) => `order:${orderId}@${ctx.db.txLabel}`,
-});
+}));
 
-const inventoryRepo = (ctx: Ctx) => ({
+const inventoryRepo = repo({ name: "inventory-repo" }, (ctx: Ctx) => ({
   reserve: (sku: string) => `reserve:${sku}@${ctx.db.txLabel}`,
-});
+}));
 
 type Deps = {
   orderRepo: ReturnType<typeof orderRepo>;
   inventoryRepo: ReturnType<typeof inventoryRepo>;
 };
 
-const checkout = usecaseFactory<Ctx & Deps, [], string[], TxOptions>(
+const checkout = usecase<Ctx & Deps, [], string[], TxOptions>(
   { name: "checkout" },
   (ctx) => async () => {
     // The outer step uses the outer DB client.
@@ -53,21 +53,29 @@ const checkout = usecaseFactory<Ctx & Deps, [], string[], TxOptions>(
 );
 
 describe("transactions", async () => {
-  const { resolve, component } = buildRuntime()
+  const { explain, resolve, component } = buildRuntime()
     .use(transaction())
     .provide({ db: { txLabel: "none" } });
 
+  const graph = component(checkout, {
+    orderRepo: component(orderRepo),
+    inventoryRepo: component(inventoryRepo),
+  });
+
   it("applies isolation levels per scope as requested", async () => {
-    const instance = await resolve(
-      component(checkout, {
-        orderRepo: component(orderRepo),
-        inventoryRepo: component(inventoryRepo),
-      }),
-    );
+    const instance = await resolve(graph);
     expect(await instance()).toEqual([
       "order:o-1@none",
       "order:o-2@serializable",
       "reserve:sku-1@serializable",
     ]);
+  });
+
+  it("can be explained", () => {
+    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
+      "└── checkout [usecase]
+          ├── orderRepo -> order-repo [repo]
+          └── inventoryRepo -> inventory-repo [repo]"
+    `);
   });
 });
