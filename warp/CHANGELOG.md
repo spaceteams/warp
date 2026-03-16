@@ -1,5 +1,12 @@
 # @spaceteams/warp
 
+## 0.3.0
+
+### Minor Changes
+
+- 1f60222: - lazy config loading
+  - semantic helpers and meta annotation
+
 ## 0.2.0
 
 ### Minor Changes

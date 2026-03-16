@@ -1,5 +1,17 @@
 # @spaceteams/warp-pino
 
+## 0.3.0
+
+### Minor Changes
+
+- 1f60222: - lazy config loading
+  - semantic helpers and meta annotation
+
+### Patch Changes
+
+- Updated dependencies [1f60222]
+  - @spaceteams/warp@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
