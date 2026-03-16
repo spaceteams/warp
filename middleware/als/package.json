@@ -1,0 +1,44 @@
+{
+  "name": "@spaceteams/warp-als",
+  "version": "0.3.0",
+  "description": "Async local storage middleware for Warp",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@spaceteams/warp": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "prepublishOnly": "pnpm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spaceteams/warp.git",
+    "directory": "middleware/pino"
+  },
+  "keywords": [
+    "warp",
+    "middleware",
+    "als",
+    "node.js"
+  ],
+  "license": "MIT"
+}

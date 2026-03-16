@@ -2,14 +2,20 @@ import type { Logger } from "pino";
 import { expect, it, vi } from "vitest";
 import { type LoggingOptions, pino } from ".";
 
-it("threads context and result", async () => {
-  const middleware = pino();
+type Ctx = { logger: Logger; additional: string };
 
-  const logger = {} as unknown as Logger;
-  const result = await middleware({ logger }, {}, (ctx) => {
-    expect(ctx).toEqual({ logger });
-    return 1;
-  });
+it("threads context and result", async () => {
+  const middleware = pino<Ctx>();
+
+  const result = await middleware(
+    { logger: {} as unknown as Logger, additional: "value" },
+    {},
+    (inner) => {
+      expect(inner.additional).toEqual("value");
+      expect(inner.logger).toEqual({});
+      return 1;
+    },
+  );
 
   expect(result).toEqual(1);
 });

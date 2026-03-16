@@ -42,6 +42,12 @@ importers:
         specifier: workspace:*
         version: link:../warp
 
+  middleware/als:
+    dependencies:
+      '@spaceteams/warp':
+        specifier: workspace:*
+        version: link:../../warp
+
   middleware/pino:
     dependencies:
       '@spaceteams/warp':

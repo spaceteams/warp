@@ -2,7 +2,9 @@
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [["@spaceteams/warp", "@spaceteams/warp-pino"]],
+  "fixed": [
+    ["@spaceteams/warp", "@spaceteams/warp-pino", "@spaceteams/warp-als"]
+  ],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch"
