@@ -1,4 +1,4 @@
-import { buildRuntime, type Middleware, type Run } from "@spaceteams/warp";
+import { buildRuntime, type Middleware, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Tracing / metrics example
@@ -30,16 +30,19 @@ const repo = () => (id: string) => `repo:${id}`;
 
 type Deps = { repo: ReturnType<typeof repo> };
 
-const useCase = (ctx: Run<Ctx & Deps, { span: string }, TraceOptions>) => async () => {
-  const result = [ctx.repo("outer")];
-  // `ctx.run(...)` creates a nested scope in which middleware receives the
-  // provided hints (`{ spanName: "inner-work" }`). The tracing middleware
-  // records start/end for that nested scope only.
-  await ctx.run({ spanName: "inner-work" }, async (inner) => {
-    result.push(inner.repo(inner.span));
-  });
-  return result;
-};
+const callTraced = usecase<Ctx & Deps, [], string[], TraceOptions, { span: string }>(
+  { name: "usecase", spanName: "usecase" },
+  (ctx) => async () => {
+    const result = [ctx.repo("outer")];
+    // `ctx.run(...)` creates a nested scope in which middleware receives the
+    // provided hints (`{ spanName: "inner-work" }`). The tracing middleware
+    // records start/end for that nested scope only.
+    await ctx.run({ spanName: "inner-work" }, async (inner) => {
+      result.push(inner.repo(inner.span));
+    });
+    return result;
+  },
+);
 
 describe("tracing", () => {
   // Register the middleware on the runtime. Provide the sink via `.with({...})`.
@@ -48,12 +51,12 @@ describe("tracing", () => {
 
   it("applies isolation levels per scope as requested", async () => {
     const instance = await resolve(
-      component(useCase, {
+      component(callTraced, {
         repo: component(repo),
       }),
     );
     expect(await instance()).toEqual(["repo:outer", "repo:some-span"]);
-    // The tracing middleware should have recorded start/end for the inner span.
-    expect(sink).toEqual(["start:inner-work", "end:inner-work"]);
+    // The tracing middleware should have recorded start/end for the inner span and the usecase itself
+    expect(sink).toEqual(["start:usecase", "start:inner-work", "end:inner-work", "end:usecase"]);
   });
 });

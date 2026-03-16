@@ -1,4 +1,4 @@
-import { buildRuntime, type Middleware, type NoScopeContext, type Run } from "@spaceteams/warp";
+import { buildRuntime, type Middleware, repo, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Transactions example
@@ -24,47 +24,58 @@ function transaction(): Middleware<Ctx, TxOptions> {
     });
 }
 
-const orderRepo = (ctx: Ctx) => ({
+const orderRepo = repo({ name: "order-repo" }, (ctx: Ctx) => ({
   save: (orderId: string) => `order:${orderId}@${ctx.db.txLabel}`,
-});
+}));
 
-const inventoryRepo = (ctx: Ctx) => ({
+const inventoryRepo = repo({ name: "inventory-repo" }, (ctx: Ctx) => ({
   reserve: (sku: string) => `reserve:${sku}@${ctx.db.txLabel}`,
-});
+}));
 
 type Deps = {
   orderRepo: ReturnType<typeof orderRepo>;
   inventoryRepo: ReturnType<typeof inventoryRepo>;
 };
 
-const checkout = (ctx: Run<Ctx & Deps, NoScopeContext, TxOptions>) => async () => {
-  // The outer step uses the outer DB client.
-  const outerStep = ctx.orderRepo.save("o-1");
-  // Inner run requests a different isolation level and thus receives a modified db.
-  const innerSteps = await ctx.run({ isolation: "serializable" }, async (inner) => {
-    const step1 = inner.orderRepo.save("o-2");
-    const step2 = inner.inventoryRepo.reserve("sku-1");
-    return [step1, step2];
-  });
-  return [outerStep, ...innerSteps];
-};
+const checkout = usecase<Ctx & Deps, [], string[], TxOptions>(
+  { name: "checkout" },
+  (ctx) => async () => {
+    // The outer step uses the outer DB client.
+    const outerStep = ctx.orderRepo.save("o-1");
+    // Inner run requests a different isolation level and thus receives a modified db.
+    const innerSteps = await ctx.run({ isolation: "serializable" }, async (inner) => {
+      const step1 = inner.orderRepo.save("o-2");
+      const step2 = inner.inventoryRepo.reserve("sku-1");
+      return [step1, step2];
+    });
+    return [outerStep, ...innerSteps];
+  },
+);
 
 describe("transactions", async () => {
-  const { resolve, component } = buildRuntime()
+  const { explain, resolve, component } = buildRuntime()
     .use(transaction())
     .provide({ db: { txLabel: "none" } });
 
+  const graph = component(checkout, {
+    orderRepo: component(orderRepo),
+    inventoryRepo: component(inventoryRepo),
+  });
+
   it("applies isolation levels per scope as requested", async () => {
-    const instance = await resolve(
-      component(checkout, {
-        orderRepo: component(orderRepo),
-        inventoryRepo: component(inventoryRepo),
-      }),
-    );
+    const instance = await resolve(graph);
     expect(await instance()).toEqual([
       "order:o-1@none",
       "order:o-2@serializable",
       "reserve:sku-1@serializable",
     ]);
+  });
+
+  it("can be explained", () => {
+    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
+      "└── checkout [usecase]
+          ├── orderRepo -> order-repo [repo]
+          └── inventoryRepo -> inventory-repo [repo]"
+    `);
   });
 });

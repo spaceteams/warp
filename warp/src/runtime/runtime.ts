@@ -1,9 +1,11 @@
 import type { Component } from "../component";
 import { defineClassComponent } from "../component/class-component";
 import { defineFunctionalComponent } from "../component/functional-component";
+import { type ExplainResult, explain } from "../explain";
+import { toAsciiTree } from "../explain/ascii";
+import { toMermaid } from "../explain/mermaid";
 import type { Middleware } from "../middleware";
 import { createResolver } from "./create-resolver";
-import { type ExplainResult, explain, toAsciiTree, toMermaid } from "./explain";
 
 type SafeIntersect<A, B> = A extends undefined ? B : A & B;
 type OptionalArg<A> = A extends undefined ? [] : [A];
@@ -86,6 +88,7 @@ export class Runtime<
       Out
     >,
     format: "native",
+    showMeta?: boolean,
   ): ExplainResult;
   public explain<Deps, Out>(
     component: Component<
@@ -96,6 +99,7 @@ export class Runtime<
       Out
     >,
     format: "ascii",
+    showMeta?: boolean,
   ): string;
   public explain<Deps, Out>(
     component: Component<
@@ -106,6 +110,7 @@ export class Runtime<
       Out
     >,
     format: "mermaid",
+    showMeta?: boolean,
   ): string;
   public explain<Deps, Out>(
     component: Component<
@@ -127,13 +132,14 @@ export class Runtime<
       Out
     >,
     format: "native" | "ascii" | "mermaid" = "native",
+    showMeta = false,
   ): ExplainResult | string {
     const result = explain(component);
     switch (format) {
       case "ascii":
-        return toAsciiTree(result);
+        return toAsciiTree(result, "", true, showMeta);
       case "mermaid":
-        return toMermaid(result);
+        return toMermaid(result, showMeta);
       case "native":
         return result;
     }

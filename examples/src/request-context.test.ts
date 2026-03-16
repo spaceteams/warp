@@ -1,4 +1,4 @@
-import { buildRuntime } from "@spaceteams/warp";
+import { buildRuntime, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Request context example
@@ -23,12 +23,14 @@ const repo = (ctx: Ctx) => (id: string) => {
 };
 type Repo = ReturnType<typeof repo>;
 
-type ServiceDeps = { repo: Repo };
-const service = (ctx: Ctx & ServiceDeps) => (id?: string) => {
-  // If no `id` is provided we use the current request user id from context.
-  const result = ctx.repo(id ?? ctx.userId);
-  return result;
-};
+const callWithUserId = usecase<Ctx & { repo: Repo }, [string?], string>(
+  { name: "callWithUserId" },
+  (ctx) => async (id) => {
+    // If no `id` is provided we use the current request user id from context.
+    const result = ctx.repo(id ?? ctx.userId);
+    return result;
+  },
+);
 
 describe("request context", () => {
   // Provide a default for repoFeature and require useId. When resolving later, this will
@@ -37,14 +39,21 @@ describe("request context", () => {
 
   // Define the component graph using the runtime's component helper.
   const { component } = runtime;
-  const graph = component(service, { repo: component(repo) });
+  const graph = component(callWithUserId, { repo: component(repo) });
+
+  it("can be explained", () => {
+    expect(runtime.explain(graph, "ascii", true)).toMatchInlineSnapshot(`
+      "└── callWithUserId [usecase]
+          └── repo"
+    `);
+  });
 
   it("reads argument", async () => {
     // Resolve the service with an explicit userId argument. This
     // would be done on a per request basis, providing just the
     // required request context.
-    const serviceInstance = await runtime.resolve(graph, { userId: "" });
-    expect(serviceInstance("my-user")).toEqual("my-user-default-result");
+    const usecaseInstance = await runtime.resolve(graph, { userId: "" });
+    expect(await usecaseInstance("my-user")).toEqual("my-user-default-result");
   });
 
   it("reads userId and feature flag from context", async () => {
@@ -53,9 +62,9 @@ describe("request context", () => {
     // `userId` from the runtime context. Using provide we can override this
     // on the runtime level.
     const specialRequestRuntime = runtime.provide({ repoFeature: true });
-    const serviceInstance = await specialRequestRuntime.resolve(graph, {
+    const usecaseInstance = await specialRequestRuntime.resolve(graph, {
       userId: "current-user",
     });
-    expect(serviceInstance()).toEqual("current-user-special-result");
+    expect(await usecaseInstance()).toEqual("current-user-special-result");
   });
 });

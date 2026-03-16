@@ -11,9 +11,25 @@ export type ComponentRef<Ctx, ScopeContext, RunOptions, Out> = {
   readonly __out?: Out;
 };
 
-export type ComponentFactory<Ctx, ScopeContext, RunOptions, Deps, Out> = (
+export type ComponentKind = "repo" | "service" | "usecase" | "client";
+
+export type ComponentMeta = {
+  name?: string;
+  kind?: ComponentKind;
+  tags?: string[];
+};
+
+export type ComponentFactoryFn<Ctx, ScopeContext, RunOptions, Deps, Out> = (
   ctx: Run<Ctx & Deps, ScopeContext, RunOptions>,
 ) => Out;
+
+export type ComponentFactory<Ctx, ScopeContext, RunOptions, Deps, Out> = ComponentFactoryFn<
+  Ctx,
+  ScopeContext,
+  RunOptions,
+  Deps,
+  Out
+> & { meta?: ComponentMeta };
 
 export type ComponentInput<Ctx, ScopeContext, RunOptions, Out> =
   | ComponentRef<Ctx, ScopeContext, RunOptions, Out>
@@ -27,24 +43,14 @@ export type Component<Ctx, ScopeContext, RunOptions, Deps, Out> = ComponentRef<
 > & {
   factory: ComponentFactory<Ctx, ScopeContext, RunOptions, Deps, Out>;
   deps?: { [K in keyof Deps]: ComponentRef<Ctx, ScopeContext, RunOptions, Deps[K]> };
-  name?: string;
+  meta?: ComponentMeta;
 };
 
 export type ComponentDefinition<Ctx, ScopeContext, RunOptions, Deps, Out> = {
   factory: ComponentFactory<Ctx, ScopeContext, RunOptions, Deps, Out>;
   deps?: { [K in keyof Deps]: ComponentInput<Ctx, ScopeContext, RunOptions, Deps[K]> };
-  name?: string;
+  meta?: ComponentMeta;
 };
-
-export type InferComponentParams<T> =
-  T extends Component<infer Ctx, infer ScopeContext, infer RunOptions, infer Deps, infer Out>
-    ? [Ctx, ScopeContext, RunOptions, Deps, Out]
-    : never;
-export type InferComponentCtx<T> = InferComponentParams<T>[0];
-export type InferComponentScopeContext<T> = InferComponentParams<T>[1];
-export type InferComponentRunOptions<T> = InferComponentParams<T>[2];
-export type InferComponentDeps<T> = InferComponentParams<T>[3];
-export type InferComponentOut<T> = InferComponentParams<T>[4];
 
 export function brandComponent<T extends object, Ctx, ScopeContext, RunOptions, Out>(
   obj: T,
