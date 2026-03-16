@@ -1,11 +1,5 @@
-import {
-  buildRuntime,
-  client,
-  type InferClient,
-  type InferUsecase,
-  usecase,
-} from "@spaceteams/warp";
-import { beforeEach, describe, expect, it } from "vitest";
+import { buildRuntime, client, type InferClient, usecase } from "@spaceteams/warp";
+import { describe, expect, it, vi } from "vitest";
 
 // Lazy / heavy dependency example
 //
@@ -13,12 +7,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 // can defer creating expensive resources until they are actually needed.
 // The heavyPdfClient factory increments a counter when constructed so tests
 // can assert whether the heavy dependency was created or not.
+
 let heavyCreated = 0;
 
-const heavyPdfClient = client({ name: "heavy-client" }, () => {
+const heavyPdfClient = client({ name: "heavy-client" }, (ctx: { expensiveToken: string }) => {
   heavyCreated++;
   return {
-    render: (content: string) => `pdf:${content}`,
+    render: (content: string) => `pdf:${content} using ${ctx.expensiveToken}`,
   };
 });
 type HeavyPdfClient = InferClient<typeof heavyPdfClient>;
@@ -36,22 +31,20 @@ const generatePreview = usecase<Deps, ["text" | "pdf"], string>(
     return ctx.heavyPdfClient.render("document");
   },
 );
-type GeneratePreview = InferUsecase<typeof generatePreview>;
 
-describe("lazy dependencies", () => {
-  const { explain, resolve, component } = buildRuntime().provide({});
+function setup() {
+  heavyCreated = 0;
+  const lazyContext = vi.fn(() => ({ expensiveToken: "expensive-token" }));
+  const { explain, resolve, component } = buildRuntime().provideLazy(lazyContext);
   const graph = component(generatePreview, {
     heavyPdfClient: component(heavyPdfClient),
   });
+  return { lazyContext, explain, resolve, graph };
+}
 
-  let generate: GeneratePreview;
-
-  beforeEach(async () => {
-    generate = await resolve(graph);
-    heavyCreated = 0;
-  });
-
+describe("lazy dependencies", () => {
   it("can be explained", () => {
+    const { explain, graph } = setup();
     expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
         "└── generate-preview [usecase]
             └── heavyPdfClient -> heavy-client [client]"
@@ -59,21 +52,40 @@ describe("lazy dependencies", () => {
   });
 
   it("does not create heavy dependency when not needed", async () => {
+    const { lazyContext, resolve, graph } = setup();
+
+    expect(lazyContext).not.toHaveBeenCalled();
+    const generate = await resolve(graph);
+    // Context is evaluated eagerly at resolve time…
+    expect(lazyContext).toHaveBeenCalledTimes(1);
+
     const result = await generate("text");
     expect(result).toEqual("plain-preview");
-    // Assert that the heavy factory was never constructed.
+    // …but the heavy client factory was never invoked.
     expect(heavyCreated).toBe(0);
   });
 
-  it("creates heavy dependency when needed", async () => {
+  it("creates heavy dependency exactly once when needed", async () => {
+    const { lazyContext, resolve, graph } = setup();
+
+    expect(lazyContext).not.toHaveBeenCalled();
+    const generate = await resolve(graph);
+    expect(lazyContext).toHaveBeenCalledTimes(1);
+
     const result = await generate("pdf");
-    expect(result).toEqual("pdf:document");
-    // Now the heavy factory should have been constructed once.
+    expect(result).toEqual("pdf:document using expensive-token");
+    // The heavy client factory was constructed exactly once.
     expect(heavyCreated).toBe(1);
   });
 
-  it("creates heavy dependency when needed", async () => {
-    await generate("pdf");
-    expect(heavyCreated).toBe(1);
+  it("caches the lazy context across multiple resolves", async () => {
+    const { lazyContext, resolve, graph } = setup();
+
+    await resolve(graph);
+    await resolve(graph);
+
+    // provideLazy caches the factory result, so it is only called once
+    // even when the runtime resolves multiple times.
+    expect(lazyContext).toHaveBeenCalledTimes(1);
   });
 });

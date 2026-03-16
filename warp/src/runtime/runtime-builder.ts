@@ -1,3 +1,4 @@
+import { Lazy } from "../lazy";
 import type { Middleware } from "../middleware";
 import { Runtime } from "./runtime";
 
@@ -22,7 +23,13 @@ export class RuntimeBuilder<AmbientContext, ScopeContext = unknown, Options = un
   provide<ActualCtx extends AmbientContext>(ctx: ActualCtx) {
     return new Runtime<AmbientContext, ActualCtx, ScopeContext, Options>(
       this.buildMiddleware(),
-      ctx,
+      () => ctx,
+    );
+  }
+  provideLazy<ActualCtx extends AmbientContext>(ctx: () => ActualCtx) {
+    return new Runtime<AmbientContext, ActualCtx, ScopeContext, Options>(
+      this.buildMiddleware(),
+      Lazy.cached(ctx),
     );
   }
 

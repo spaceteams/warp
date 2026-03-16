@@ -4,6 +4,7 @@ import { defineFunctionalComponent } from "../component/functional-component";
 import { type ExplainResult, explain } from "../explain";
 import { toAsciiTree } from "../explain/ascii";
 import { toMermaid } from "../explain/mermaid";
+import { Lazy } from "../lazy";
 import type { Middleware } from "../middleware";
 import { createResolver } from "./create-resolver";
 
@@ -21,9 +22,10 @@ export class Runtime<
     root: Component<Ctx, ScopeContext, RunOptions, Deps, Out>,
     ctx: Ctx,
   ) => Out | Promise<Out>;
+
   constructor(
     private readonly middleware: Middleware<Ctx, RunOptions, ScopeContext>,
-    private readonly ctx: ActualContext,
+    private readonly ctx: Lazy<ActualContext>,
   ) {
     this.resolveFn = createResolver<Ctx, ScopeContext, RunOptions>(middleware);
   }
@@ -31,12 +33,16 @@ export class Runtime<
   public provide<Extension>(ext: Extension) {
     return new Runtime<Ctx, ActualContext & Extension, ScopeContext, RunOptions, Requirements>(
       this.middleware,
-      {
-        ...this.ctx,
-        ...ext,
-      },
+      Lazy.and(this.ctx, () => ext),
     );
   }
+  public provideLazy<Extension>(ext: () => Extension) {
+    return new Runtime<Ctx, ActualContext & Extension, ScopeContext, RunOptions, Requirements>(
+      this.middleware,
+      Lazy.and(this.ctx, Lazy.cached(ext)),
+    );
+  }
+
   public require<Extension>() {
     return new Runtime<
       Ctx,
@@ -58,7 +64,7 @@ export class Runtime<
     ...requirements: OptionalArg<Requirements>
   ) => {
     const req = requirements[0] as Requirements | undefined;
-    const ctx = req ? { ...this.ctx, ...(req as object) } : { ...this.ctx };
+    const ctx = req ? { ...this.ctx(), ...req } : { ...this.ctx() };
     return this.resolveFn(component as Component<Ctx, ScopeContext, RunOptions, Deps, Out>, ctx);
   };
 
