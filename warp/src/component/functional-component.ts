@@ -1,5 +1,6 @@
-import type { Component, ComponentFactory, ComponentInput, ComponentMeta, ComponentRef } from ".";
+import type { Component, ComponentFactory, ComponentInput, ComponentRef } from ".";
 import { brandComponent } from ".";
+import type { ComponentMeta } from "./component-meta";
 
 export function defineFunctionalComponent<Ctx, ScopeContext, RunOptions>() {
   return <Deps, F extends ComponentFactory<Ctx, ScopeContext, RunOptions, Deps, ReturnType<F>>>(

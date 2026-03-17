@@ -1,6 +1,7 @@
 import type { Run } from "../run";
-import type { Component, ComponentFactory, ComponentInput, ComponentMeta, ComponentRef } from ".";
+import type { Component, ComponentFactory, ComponentInput, ComponentRef } from ".";
 import { brandComponent } from ".";
+import type { ComponentMeta } from "./component-meta";
 
 export function defineClassComponent<Ctx, ScopeContext, RunOptions>() {
   return <

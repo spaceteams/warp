@@ -24,7 +24,7 @@ it("exposes context through mapper inside scopes", async () => {
 
   await warpAls.middleware()(
     { additional: "1" },
-    { extract: (ctx) => ({ additionalExposed: Number(ctx.additional) }) },
+    { als: { extract: (ctx) => ({ additionalExposed: Number(ctx.additional) }) } },
     (inner) => {
       expect(inner.additional).toEqual("1");
       legacyFunction();

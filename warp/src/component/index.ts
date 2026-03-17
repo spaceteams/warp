@@ -1,4 +1,5 @@
 import type { Run } from "../run";
+import type { ComponentMeta } from "./component-meta";
 
 export type NoDeps = NonNullable<unknown>;
 
@@ -9,14 +10,6 @@ export type ComponentRef<Ctx, ScopeContext, RunOptions, Out> = {
   readonly __scopeContext?: ScopeContext;
   readonly __runOptions?: RunOptions;
   readonly __out?: Out;
-};
-
-export type ComponentKind = "repo" | "service" | "usecase" | "client";
-
-export type ComponentMeta = {
-  name?: string;
-  kind?: ComponentKind;
-  tags?: string[];
 };
 
 export type ComponentFactoryFn<Ctx, ScopeContext, RunOptions, Deps, Out> = (

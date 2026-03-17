@@ -30,8 +30,8 @@ it("sets child logger if requested", async () => {
   expect(child).not.toHaveBeenCalled();
 
   const options: LoggingOptions = {
-    logger: { bindings: { userId: "string" }, options: { level: "error" } },
+    logging: { bindings: { userId: "string" }, options: { level: "error" } },
   };
   await middleware({ logger }, options, () => {});
-  expect(child).toHaveBeenCalledWith(options.logger.bindings, options.logger.options);
+  expect(child).toHaveBeenCalledWith(options.logging.bindings, options.logging.options);
 });

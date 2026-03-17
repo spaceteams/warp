@@ -1,4 +1,5 @@
-import type { ComponentFactory, ComponentMeta } from "../component";
+import type { ComponentFactory } from "../component";
+import type { ComponentMeta } from "../component/component-meta";
 import type { NoRunOptions, NoScopeContext } from "../middleware";
 import type { Run } from "../run";
 
