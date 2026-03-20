@@ -57,7 +57,9 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
 
           checkCyclicDependency(depPath);
 
-          const out = withStackTracking(depPath, () => bindInScope(depComp, scopeCtx, depPath));
+          const out = withStackTracking(depPath, () =>
+            bindInScope(depComp, scopeCtx, depPath, depName),
+          );
           cache.set(depName, out);
           return out;
         },
@@ -93,13 +95,18 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
       comp: ComponentInput<AmbientContext, ScopeContext, RunOptions, unknown>,
       scopeCtx: AmbientContext & ScopeContext,
       path: string,
+      depName: string,
     ): unknown => {
       const localDepCache = new Map<string, unknown>();
       if (!isComponent(comp)) {
         return comp;
       }
 
-      const runCtx = createBaseRunContext(scopeCtx, { component: comp.meta, componentPath: path });
+      const runCtx = createBaseRunContext(scopeCtx, {
+        component: comp.meta,
+        componentPath: path,
+        componentKey: depName,
+      });
 
       attachDependencies(runCtx, comp.deps ?? {}, scopeCtx, path, localDepCache);
 

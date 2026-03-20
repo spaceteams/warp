@@ -1,6 +1,8 @@
 import type { Component } from "../component";
 import { defineClassComponent } from "../component/class-component";
+import { defineClassSingleton } from "../component/class-singleton";
 import { defineFunctionalComponent } from "../component/functional-component";
+import { defineFunctionalSingleton } from "../component/functional-singleton";
 import { type ExplainResult, explain } from "../explain";
 import { toAsciiTree } from "../explain/ascii";
 import { toMermaid } from "../explain/mermaid";
@@ -76,12 +78,20 @@ export class Runtime<
     >();
   }
 
+  get singleton() {
+    return defineFunctionalSingleton<SafeIntersect<Requirements, ActualContext>, RunOptions>();
+  }
+
   get classComponent() {
     return defineClassComponent<
       SafeIntersect<Requirements, ActualContext>,
       ScopeContext,
       RunOptions
     >();
+  }
+
+  get classSingleton() {
+    return defineClassSingleton<SafeIntersect<Requirements, ActualContext>, RunOptions>();
   }
 
   // Overloads for explain method with format parameter

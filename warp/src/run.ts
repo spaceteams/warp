@@ -3,6 +3,7 @@ import type { ComponentMeta } from "./component/component-meta";
 export type WarpMeta = {
   component?: ComponentMeta;
   componentPath?: string;
+  componentKey?: string;
 };
 
 export type Run<AmbientContext, ScopeContext = unknown, RunOptions = unknown> = AmbientContext & {
