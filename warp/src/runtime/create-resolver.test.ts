@@ -430,10 +430,14 @@ describe("option propagation", () => {
 
   it("makes meta visible in run scopes", async () => {
     const resolve = createResolver(noop());
-    const comp = defineFunctionalComponent<{}, NoScopeContext, OptionType>();
+    const comp = defineFunctionalComponent<NonNullable<unknown>, NoScopeContext, OptionType>();
     const repo = comp(
       (ctx) => {
-        expect(ctx.warp).toEqual({ componentPath: "repo", component: { name: "repo" } });
+        expect(ctx.warp).toEqual({
+          componentKey: "repo",
+          componentPath: "repo",
+          component: { name: "repo" },
+        });
         return ctx;
       },
       {},

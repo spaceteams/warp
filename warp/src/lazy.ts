@@ -1,22 +1,22 @@
-export type Lazy<T> = () => T;
+export type Lazy<T, Args extends unknown[] = []> = (...args: Args) => T;
 
 export const Lazy = {
-  cached<T>(factory: () => T): Lazy<T> {
+  cached<T, Args extends unknown[] = []>(factory: Lazy<T, Args>): Lazy<T, Args> {
     let cached: T | undefined;
-    return () => {
+    return (...args) => {
       if (cached === undefined) {
-        cached = factory();
+        cached = factory(...args);
       }
       return cached;
     };
   },
-  and<S, T>(l: Lazy<S>, r: Lazy<T>): Lazy<S & T> {
-    return () => ({
-      ...l(),
-      ...r(),
+  and<S, T, Args extends unknown[] = []>(l: Lazy<S, Args>, r: Lazy<T, Args>): Lazy<S & T, Args> {
+    return (...args) => ({
+      ...l(...args),
+      ...r(...args),
     });
   },
-  map<S, T>(l: Lazy<S>, fn: (v: S) => T): Lazy<T> {
-    return () => fn(l());
+  map<S, T, Args extends unknown[] = []>(l: Lazy<S, Args>, fn: (v: S) => T): Lazy<T, Args> {
+    return (...args) => fn(l(...args));
   },
 };
