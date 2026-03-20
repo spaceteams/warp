@@ -1,6 +1,6 @@
 import { type Component, type ComponentInput, isComponent } from "../component";
 import type { Middleware } from "../middleware";
-import type { Run } from "../run";
+import type { Run, WarpMeta } from "../run";
 
 export function createResolver<AmbientContext, ScopeContext, RunOptions>(
   mw: Middleware<AmbientContext, RunOptions, ScopeContext>,
@@ -79,10 +79,13 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
 
     const createBaseRunContext = (
       scopeCtx: AmbientContext & ScopeContext,
+      warp?: WarpMeta,
     ): Run<AmbientContext, ScopeContext, RunOptions> => {
       return {
         ...scopeCtx,
-        run: (nestedOptions, nestedInner) => runWithContext(scopeCtx, nestedOptions, nestedInner),
+        warp,
+        run: (nestedOptions, nestedInner) =>
+          runWithContext(scopeCtx, nestedOptions, nestedInner, warp),
       };
     };
 
@@ -92,10 +95,11 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
       path: string,
     ): unknown => {
       const localDepCache = new Map<string, unknown>();
-      const runCtx = createBaseRunContext(scopeCtx);
       if (!isComponent(comp)) {
         return comp;
       }
+
+      const runCtx = createBaseRunContext(scopeCtx, { component: comp.meta, componentPath: path });
 
       attachDependencies(runCtx, comp.deps ?? {}, scopeCtx, path, localDepCache);
 
@@ -106,7 +110,7 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
       scopeCtx: AmbientContext & ScopeContext,
     ): Run<AmbientContext & ScopeContext & Deps, ScopeContext, RunOptions> => {
       const rootCache = new Map<string, unknown>();
-      const runCtx = createBaseRunContext(scopeCtx);
+      const runCtx = createBaseRunContext(scopeCtx, { component: root.meta });
 
       attachDependencies(runCtx, root.deps ?? {}, scopeCtx, "", rootCache);
 
@@ -119,10 +123,16 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
       inner: (
         runApp: Run<AmbientContext & ScopeContext, ScopeContext, RunOptions>,
       ) => Promise<T> | T,
+      warp: WarpMeta | undefined,
     ): Promise<T> => {
-      return await mw(currentCtx, options, (scopedCtx) => {
-        return inner(makeRootRunContext(scopedCtx));
-      });
+      return await mw(
+        currentCtx,
+        options,
+        (scopedCtx) => {
+          return inner(makeRootRunContext(scopedCtx));
+        },
+        warp,
+      );
     };
 
     return root.factory(makeRootRunContext(ctx as AmbientContext & ScopeContext));

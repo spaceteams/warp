@@ -427,4 +427,38 @@ describe("option propagation", () => {
       { component: "repo", options: { action: "update" } },
     ]);
   });
+
+  it("makes meta visible in run scopes", async () => {
+    const resolve = createResolver(noop());
+    const comp = defineFunctionalComponent<{}, NoScopeContext, OptionType>();
+    const repo = comp(
+      (ctx) => {
+        expect(ctx.warp).toEqual({ componentPath: "repo", component: { name: "repo" } });
+        return ctx;
+      },
+      {},
+      { name: "repo" },
+    );
+    const root = comp(
+      (ctx) => {
+        expect(ctx.warp).toEqual({ component: { name: "root" } });
+        return ctx;
+      },
+      { repo },
+      { name: "root" },
+    );
+
+    const result = resolve(root, {});
+
+    // Access repo at root level (no options)
+    void result.repo;
+
+    // Run with options
+    await result.run({ action: "fetch" }, async (secondLevel) => {
+      expect(secondLevel.warp).toEqual({ component: { name: "root" } });
+      await secondLevel.run({ action: "update" }, async (thirdLevel) => {
+        expect(thirdLevel.warp).toEqual({ component: { name: "root" } });
+      });
+    });
+  });
 });

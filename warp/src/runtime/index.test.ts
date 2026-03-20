@@ -11,14 +11,25 @@ describe("runtime-builder", () => {
     const onCreate = vi.fn();
     const { component, resolve } = new RuntimeBuilder().provide({ context: "1" });
     await resolve(
-      component((a) => {
-        onCreate(a);
-        return a;
-      }),
+      component(
+        (a) => {
+          onCreate(a);
+          return a;
+        },
+        [],
+        { kind: "client", name: "name", tags: ["a", "b"] },
+      ),
     );
     expect(onCreate).toHaveBeenCalledWith({
       context: "1",
       run: expect.anything(),
+      warp: {
+        component: {
+          kind: "client",
+          name: "name",
+          tags: ["a", "b"],
+        },
+      },
     });
   });
 
@@ -26,11 +37,14 @@ describe("runtime-builder", () => {
     const { component, resolve } = new RuntimeBuilder()
       .use(levelMiddleware())
       .provide({ level: 0 });
-    const request = await resolve(component((a) => a));
+    const request = await resolve(
+      component((a) => a, [], { kind: "service", name: "name", tags: ["a", "b"] }),
+    );
     expect(request.level).toEqual(0);
 
-    request.run({}, async ({ level }) => {
+    request.run({}, async ({ level, warp }) => {
       expect(level).toEqual(1);
+      expect(warp).toEqual({ component: { kind: "service", name: "name", tags: ["a", "b"] } });
     });
   });
 });
