@@ -1,6 +1,15 @@
 import type { Run } from "../run";
 import type { ComponentMeta } from "./component-meta";
 
+export type {
+  AnyFactory,
+  InferCtx,
+  InferOut,
+  InferRunOptions,
+  InferScopeContext,
+  UnionToIntersection,
+} from "./infer";
+
 export type NoDeps = NonNullable<unknown>;
 
 const COMPONENT: unique symbol = Symbol("component");
