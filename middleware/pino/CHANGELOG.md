@@ -1,5 +1,13 @@
 # @spaceteams/warp-pino
 
+## 0.3.2
+
+### Patch Changes
+
+- 9529aba: combine sematic helper
+- Updated dependencies [9529aba]
+  - @spaceteams/warp@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
