@@ -1,4 +1,4 @@
-import { buildRuntime, type ComponentMeta, repo, usecase } from "@spaceteams/warp";
+import { buildRuntime, type ComponentMeta, type InferRepo, repo, usecase } from "@spaceteams/warp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Realistic use case
@@ -28,7 +28,7 @@ const customerRepo = repo(
 type CustomerRepo = ReturnType<typeof customerRepo>;
 
 const priceRepo = repo({ name: "price-repo" }, () => (_productId: string) => 100);
-type PriceRepo = ReturnType<typeof priceRepo>;
+type PriceRepo = InferRepo<typeof priceRepo>;
 
 class PricingService {
   // classes can communicate meta information via static members

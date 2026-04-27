@@ -1,5 +1,6 @@
 export * from "./callable";
 export * from "./client";
+export * from "./combine";
 export * from "./repo";
 export * from "./service";
 export * from "./usecase";
