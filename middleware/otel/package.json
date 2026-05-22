@@ -1,6 +1,6 @@
 {
   "name": "@spaceteams/warp-otel",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Open Telemetry middleware for Warp",
   "type": "module",
   "files": [

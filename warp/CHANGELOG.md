@@ -1,5 +1,12 @@
 # @spaceteams/warp
 
+## 0.3.4
+
+### Patch Changes
+
+- 2211fdf: fix peer dependency setup and type export
+- 2211fdf: combine sematic helper
+
 ## 0.3.3
 
 ### Patch Changes
