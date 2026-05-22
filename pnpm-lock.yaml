@@ -50,13 +50,13 @@ importers:
 
   middleware/otel:
     dependencies:
-      '@opentelemetry/api':
-        specifier: 1.9.0
-        version: 1.9.0
       '@spaceteams/warp':
         specifier: workspace:*
         version: link:../../warp
     devDependencies:
+      '@opentelemetry/api':
+        specifier: 1.9.0
+        version: 1.9.0
       '@opentelemetry/sdk-metrics':
         specifier: 2.6.0
         version: 2.6.0(@opentelemetry/api@1.9.0)
@@ -72,6 +72,7 @@ importers:
       '@spaceteams/warp':
         specifier: workspace:*
         version: link:../../warp
+    devDependencies:
       pino:
         specifier: 10.3.1
         version: 10.3.1

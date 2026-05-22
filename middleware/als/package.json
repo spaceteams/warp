@@ -7,12 +7,10 @@
     "dist"
   ],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@spaceteams/warp": "workspace:*"
   },
   "scripts": {
