@@ -77,6 +77,16 @@ importers:
         specifier: 10.3.1
         version: 10.3.1
 
+  middleware/retry:
+    dependencies:
+      '@spaceteams/warp':
+        specifier: workspace:*
+        version: link:../../warp
+    devDependencies:
+      cockatiel:
+        specifier: 3.2.1
+        version: 3.2.1
+
   warp: {}
 
 packages:
@@ -961,6 +971,10 @@ packages:
 
   citty@0.2.1:
     resolution: {integrity: sha512-kEV95lFBhQgtogAPlQfJJ0WGVSokvLr/UEoFPiKKOXF7pl98HfUVUD0ejsuTCld/9xH9vogSywZ5KqHzXrZpqg==}
+
+  cockatiel@3.2.1:
+    resolution: {integrity: sha512-gfrHV6ZPkquExvMh9IOkKsBzNDk6sDuZ6DdBGUBkvFnTCqCxzpuq48RySgP0AnaqQkw2zynOFj9yly6T1Q2G5Q==}
+    engines: {node: '>=16'}
 
   confbox@0.2.4:
     resolution: {integrity: sha512-ysOGlgTFbN2/Y6Cg3Iye8YKulHw+R2fNXHrgSmXISQdMnomY6eNDprVdW9R5xBguEqI954+S6709UyiO7B+6OQ==}
@@ -2389,6 +2403,8 @@ snapshots:
       consola: 3.4.2
 
   citty@0.2.1: {}
+
+  cockatiel@3.2.1: {}
 
   confbox@0.2.4: {}
 

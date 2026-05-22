@@ -1,0 +1,47 @@
+{
+  "name": "@spaceteams/warp-retry",
+  "version": "0.3.0",
+  "description": "Retry middleware for Warp powered by cockatiel",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@spaceteams/warp": "workspace:*",
+    "cockatiel": ">=3.0.0"
+  },
+  "devDependencies": {
+    "cockatiel": "3.2.1"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "prepublishOnly": "pnpm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spaceteams/warp.git",
+    "directory": "middleware/retry"
+  },
+  "keywords": [
+    "warp",
+    "middleware",
+    "retry",
+    "resilience",
+    "cockatiel"
+  ],
+  "license": "MIT"
+}
