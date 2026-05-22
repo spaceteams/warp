@@ -7,16 +7,15 @@
     "dist"
   ],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@spaceteams/warp": "workspace:*",
-    "@opentelemetry/api": "1.9.0"
+    "@opentelemetry/api": ">=1.0.0"
   },
   "devDependencies": {
+    "@opentelemetry/api": "1.9.0",
     "@opentelemetry/sdk-metrics": "2.6.0",
     "@opentelemetry/sdk-trace-node": "2.6.0",
     "@opentelemetry/sdk-trace-base": "2.6.0"
