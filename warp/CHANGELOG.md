@@ -1,5 +1,17 @@
 # @spaceteams/warp
 
+## 1.0.0
+
+### Minor Changes
+
+- 68cf4c5: introduce retry middleware
+
+### Patch Changes
+
+- 68cf4c5: fix peer dependency setup and type export
+- 68cf4c5: combine sematic helper
+- 68cf4c5: fix type exports again
+
 ## 0.3.4
 
 ### Patch Changes
