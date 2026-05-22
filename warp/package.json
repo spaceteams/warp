@@ -1,6 +1,6 @@
 {
   "name": "@spaceteams/warp",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Type-safe composition with execution scopes ",
   "type": "module",
   "files": [
