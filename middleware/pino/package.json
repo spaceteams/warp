@@ -1,6 +1,6 @@
 {
   "name": "@spaceteams/warp-pino",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Pino logger middleware for Warp",
   "type": "module",
   "files": [

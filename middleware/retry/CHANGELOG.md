@@ -1,5 +1,16 @@
 # @spaceteams/warp-retry
 
+## 2.0.0
+
+### Minor Changes
+
+- bdd22ff: fix retry middleware
+
+### Patch Changes
+
+- Updated dependencies [bdd22ff]
+  - @spaceteams/warp@2.0.0
+
 ## 1.0.0
 
 ### Minor Changes
