@@ -12,12 +12,12 @@ export function createWarpAls<Ctx extends AlsCtx, ExposedCtx>() {
   const als = new AsyncLocalStorage<ExposedCtx>();
 
   return {
-    middleware<Options extends AlsOptions<Ctx, ExposedCtx>>(): Middleware<Ctx, Options> {
+    middleware<C extends AlsCtx = AlsCtx>(): Middleware<C, Partial<AlsOptions<Ctx, ExposedCtx>>> {
       return async (ctx, hints, next) => {
         if (!hints.als) {
           return next(ctx);
         }
-        const exposed = hints.als.extract(ctx);
+        const exposed = hints.als.extract(ctx as unknown as Ctx);
         return als.run(exposed, () => next(ctx));
       };
     },

@@ -1,10 +1,16 @@
 # @spaceteams/warp-otel
 
-OpenTelemetry middleware for the [warp](https://github.com/spaceteams/warp) composition runtime — automatic tracing and metrics for every component execution scope.
+> OpenTelemetry middleware for warp — automatic tracing and metrics per component.
+
+Wraps each component execution in an OpenTelemetry span and records run count, errors, and duration metrics automatically.
+
+---
 
 ## Motivation
 
-In a composition runtime like warp, each request resolves a graph of components. Understanding latency, error rates, and call relationships across those components is critical for production debugging and performance tuning. `@spaceteams/warp-otel` wraps each component execution in an OpenTelemetry span and records metrics (run count, errors, duration) automatically, so you get distributed tracing and per-component observability without manual instrumentation.
+In a composition runtime like warp, each request resolves a graph of components. Understanding latency, error rates, and call relationships across those components is critical for production debugging and performance tuning. `@spaceteams/warp-otel` gives you distributed tracing and per-component observability without manual instrumentation.
+
+---
 
 ## Installation
 
@@ -14,52 +20,64 @@ pnpm add @spaceteams/warp-otel @opentelemetry/api
 
 Both `@spaceteams/warp` and `@opentelemetry/api` are peer dependencies.
 
+---
+
 ## Usage
 
 ### Basic setup
 
 ```ts
-import { otel } from "@spaceteams/warp-otel";
+import { buildRuntime, usecase } from "@spaceteams/warp";
+import { otel, type OtelRunOptions } from "@spaceteams/warp-otel";
 
-const otelMiddleware = otel({
-  instrumentationName: "my-service",
-});
+const { resolve, component } = buildRuntime()
+  .use(otel({ instrumentationName: "my-service" }))
+  .provide({});
 ```
 
-Register it as middleware in your warp runtime. Tracing and metrics are enabled by default.
+Tracing and metrics are enabled by default for any component that declares `otel` in its meta.
 
 ### Per-component options
 
-Pass `otel` in run options to customize span name and attributes per component:
+Declare `otel` in the callable/usecase meta to enable instrumentation:
 
 ```ts
-const result = await run(context, {
-  otel: {
-    spanName: "resolve-user-profile",
-    attributes: { userId: "abc-123" },
+const fetchProfile = usecase<Context, [string], Profile, Partial<OtelRunOptions>>(
+  {
+    name: "fetch-profile",
+    otel: {
+      spanName: "resolve-user-profile",
+      attributes: { "app.module": "users" },
+    },
   },
-});
+  (ctx) => async (userId) => {
+    return ctx.profileRepo.find(userId);
+  },
+);
 ```
 
-If no `spanName` is provided, the middleware uses the component's `componentPath` from warp metadata (e.g. `"app.userService.getProfile"`).
+If no `spanName` is provided, the middleware uses the component's `componentPath` from warp metadata. Components without `otel` in their meta are not instrumented.
 
 ### Accessing the span
 
-The middleware injects the active `Span` into the scope context. Downstream code can access it via `OtelScopeContext`:
+The middleware injects the active `Span` into the scope context. Downstream code can access it:
 
 ```ts
 import type { OtelScopeContext } from "@spaceteams/warp-otel";
 
-function myComponent(ctx: MyContext & OtelScopeContext) {
-  ctx.span?.addEvent("cache-miss");
-  ctx.span?.setAttribute("cache.key", key);
-  // ...
-}
+const processOrder = callable<Context & OtelScopeContext, [string], void, Partial<OtelRunOptions>>(
+  { name: "process-order", otel: {} },
+  (ctx) => async (orderId) => {
+    ctx.span?.addEvent("processing-started");
+    ctx.span?.setAttribute("order.id", orderId);
+    // ...
+  },
+);
 ```
 
 ### Metrics
 
-When metrics are enabled (default), the middleware automatically records:
+When metrics are enabled (default), the middleware records:
 
 | Metric | Type | Description |
 |--------|------|-------------|
@@ -67,11 +85,17 @@ When metrics are enabled (default), the middleware automatically records:
 | `warp.run.errors` | Counter | Number of failed component executions |
 | `warp.run.duration` | Histogram (ms) | Duration of each component execution |
 
-Metric names are configurable via `metricNames`. Attributes default to the span attributes (`componentPath`, `componentKind`, `componentName`) but can be overridden with `metricAttributes`.
+Metric names are configurable via `metricNames` in the middleware config.
 
-### Configuration
+---
 
-`OtelMiddlewareConfig` options:
+## Configuration
+
+### `otel(config)`
+
+Returns a warp middleware. Register with `.use(otel(config))`.
+
+#### `OtelMiddlewareConfig`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -85,29 +109,25 @@ Metric names are configurable via `metricNames`. Attributes default to the span 
 | `metricNames` | `{ runs?, errors?, duration? }` | see above | Override default metric names |
 | `metricAttributes` | `(ctx, options, outcome) => Attributes` | span attributes | Custom metric attribute function |
 
-Per-run options (`OtelRunOptions`):
+#### `OtelRunOptions` (per-component)
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `otel.spanName` | `string` | Override the span name for this execution |
+| `otel.spanName` | `string` | Override the span name for this component |
 | `otel.attributes` | `Attributes` | Additional span/metric attributes |
-| `otel.recordMetrics` | `boolean` | Override metric recording for this execution |
-| `otel.recordErrors` | `boolean` | Override error recording for this execution |
+| `otel.recordMetrics` | `boolean` | Override metric recording for this component |
+| `otel.recordErrors` | `boolean` | Override error recording for this component |
 
-## API
+### Exported types
 
 ```ts
-// Main factory
-export function otel<AmbientContext, RunOptions>(
-  config: OtelMiddlewareConfig<AmbientContext, RunOptions>,
-): Middleware<AmbientContext, RunOptions, OtelScopeContext>;
-
-// Types
 export type OtelMiddlewareConfig<AmbientContext, RunOptions>;
 export type OtelRunOptions;
-export type OtelAmbientContext;
-export type OtelScopeContext;
+export type OtelAmbientContext;  // { otel?: { parentContext?: Context } }
+export type OtelScopeContext;    // { span?: Span }
 ```
+
+---
 
 ## License
 

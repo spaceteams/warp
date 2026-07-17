@@ -40,14 +40,7 @@ export class RuntimeBuilder<AmbientContext, ScopeContext = unknown, Options = un
       options: Partial<Options>,
       next: (ctx: ScopeContext & AmbientContext) => Promise<T> | T,
     ): Promise<T> | T {
-      let index = -1;
-
       const dispatch = (i: number, currentCtx: AmbientContext): Promise<T> | T => {
-        if (i <= index) {
-          throw new Error("next() called multiple times");
-        }
-        index = i;
-
         const mw = middlewares[i];
         if (!mw) {
           return next(currentCtx as ScopeContext & AmbientContext);

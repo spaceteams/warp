@@ -28,69 +28,69 @@ Both `@spaceteams/warp` and `cockatiel` are peer dependencies.
 
 ### Basic retry
 
-Retry a component up to 3 times with exponential backoff:
+Register the middleware on the runtime, then declare retry options per component:
 
 ```ts
-import { component, resolve } from "@spaceteams/warp";
-import { resilience } from "@spaceteams/warp-retry";
+import { buildRuntime, callable } from "@spaceteams/warp";
+import { resilience, ConstantBackoff, type ResilienceOptions } from "@spaceteams/warp-retry";
 
-const service = component(fetchUser, {}, {
-  middleware: [resilience()],
-  options: {
-    resilience: {
-      retry: { maxAttempts: 3 },
-    },
+const runtime = buildRuntime().use(resilience()).provide({ /* your context */ });
+
+const fetchUser = callable<{ db: DB }, [string], User, Partial<ResilienceOptions>>(
+  { name: "fetch-user", retry: { maxAttempts: 3 } },
+  (ctx) => async (userId) => {
+    return ctx.db.findUser(userId);
   },
-});
+);
+
+const { resolve, component } = runtime;
+const getUser = await resolve(component(fetchUser));
+await getUser("user-123"); // retries up to 3 times on failure
 ```
 
 Custom backoff:
 
 ```ts
-import { ConstantBackoff } from "cockatiel";
+import { ExponentialBackoff, ConstantBackoff } from "@spaceteams/warp-retry";
 
-options: {
-  resilience: {
+const fetchWithBackoff = callable<Context, [string], Data, Partial<ResilienceOptions>>(
+  {
+    name: "fetch-with-backoff",
     retry: { maxAttempts: 5, backoff: new ConstantBackoff(500) },
   },
-}
+  (ctx) => async (url) => { /* ... */ },
+);
 ```
 
 ### Timeout
 
-Apply a per-attempt timeout of 2 seconds:
+Apply a per-attempt timeout:
 
 ```ts
-options: {
-  resilience: {
-    timeout: { duration: 2000 },
-  },
-}
+const fetchWithTimeout = callable<Context, [string], Data, Partial<ResilienceOptions>>(
+  { name: "fetch-data", timeout: { duration: 2000 } },
+  (ctx) => async (url) => { /* ... */ },
+);
 ```
 
 By default the timeout strategy is `Aggressive` — the call rejects immediately when the deadline expires. Use `TimeoutStrategy.Cooperative` if your function checks a cancellation token instead.
 
 ### Circuit Breaker
 
-A circuit breaker must be created **outside** the middleware and shared across calls so it can track failure state over time:
+A circuit breaker must be created **outside** the callable and shared across calls so it can track failure state over time:
 
 ```ts
-import { resilience, createCircuitBreaker } from "@spaceteams/warp-retry";
-import { ConsecutiveBreaker } from "cockatiel";
+import { resilience, createCircuitBreaker, ConsecutiveBreaker, type ResilienceOptions } from "@spaceteams/warp-retry";
 
 const breaker = createCircuitBreaker({
   breaker: new ConsecutiveBreaker(5),
   halfOpenAfter: 10_000,
 });
 
-const service = component(fetchUser, {}, {
-  middleware: [resilience()],
-  options: {
-    resilience: {
-      circuitBreaker: breaker,
-    },
-  },
-});
+const fetchUser = callable<Context, [string], User, Partial<ResilienceOptions>>(
+  { name: "fetch-user", circuitBreaker: breaker },
+  (ctx) => async (userId) => { /* ... */ },
+);
 ```
 
 ### Composing policies
@@ -104,27 +104,26 @@ retry → circuit breaker → timeout → action
 This means each retry attempt checks the circuit breaker first, and each attempt has its own timeout.
 
 ```ts
-import { resilience, createCircuitBreaker } from "@spaceteams/warp-retry";
-import { ConsecutiveBreaker, ExponentialBackoff } from "cockatiel";
+import { resilience, createCircuitBreaker, ConsecutiveBreaker, ExponentialBackoff, type ResilienceOptions } from "@spaceteams/warp-retry";
 
 const breaker = createCircuitBreaker({
   breaker: new ConsecutiveBreaker(5),
   halfOpenAfter: 10_000,
 });
 
-const service = component(fetchUser, {}, {
-  middleware: [resilience()],
-  options: {
-    resilience: {
-      retry: {
-        maxAttempts: 3,
-        backoff: new ExponentialBackoff(),
-      },
-      timeout: { duration: 2000 },
-      circuitBreaker: breaker,
-    },
+const resilientFetch = callable<Context, [string], Data, Partial<ResilienceOptions>>(
+  {
+    name: "resilient-fetch",
+    retry: { maxAttempts: 3, backoff: new ExponentialBackoff() },
+    timeout: { duration: 2000 },
+    circuitBreaker: breaker,
   },
-});
+  (ctx) => async (url) => { /* ... */ },
+);
+
+const { resolve, component } = buildRuntime().use(resilience()).provide({});
+const fetch = await resolve(component(resilientFetch));
+await fetch("/api/users");
 ```
 
 ---
@@ -133,7 +132,7 @@ const service = component(fetchUser, {}, {
 
 ### `resilience<Ctx>()`
 
-Returns a warp `Middleware<Ctx, ResilienceOptions>`. Attach it to any component to apply resilience policies.
+Returns a warp `Middleware<Ctx, ResilienceOptions>`. Register it with `.use(resilience())` on the runtime.
 
 #### `ResilienceOptions`
 
@@ -158,6 +157,7 @@ The package re-exports commonly used cockatiel utilities:
 - `ExponentialBackoff`, `ConstantBackoff`
 - `ConsecutiveBreaker`, `SamplingBreaker`
 - `TimeoutStrategy`
+- `handleAll`
 
 ---
 

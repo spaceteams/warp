@@ -38,6 +38,15 @@ importers:
       '@spaceteams/warp':
         specifier: workspace:*
         version: link:../warp
+      '@spaceteams/warp-als':
+        specifier: workspace:*
+        version: link:../middleware/als
+      '@spaceteams/warp-retry':
+        specifier: workspace:*
+        version: link:../middleware/retry
+      cockatiel:
+        specifier: 4.0.0
+        version: 4.0.0
 
   middleware/als:
     devDependencies:
