@@ -51,7 +51,7 @@ importers:
   middleware/als:
     devDependencies:
       '@spaceteams/warp':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../warp
 
   middleware/otel:
@@ -69,13 +69,13 @@ importers:
         specifier: 2.9.0
         version: 2.9.0(@opentelemetry/api@1.9.1)
       '@spaceteams/warp':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../warp
 
   middleware/pino:
     devDependencies:
       '@spaceteams/warp':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../warp
       pino:
         specifier: 10.3.1
@@ -84,7 +84,7 @@ importers:
   middleware/retry:
     devDependencies:
       '@spaceteams/warp':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../warp
       cockatiel:
         specifier: 4.0.0

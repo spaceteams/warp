@@ -11,11 +11,11 @@
     "./package.json": "./package.json"
   },
   "peerDependencies": {
-    "@spaceteams/warp": "workspace:*",
+    "@spaceteams/warp": "workspace:^",
     "cockatiel": ">=4.0.0"
   },
   "devDependencies": {
-    "@spaceteams/warp": "workspace:*",
+    "@spaceteams/warp": "workspace:^",
     "cockatiel": "4.0.0"
   },
   "scripts": {

@@ -11,10 +11,10 @@
     "./package.json": "./package.json"
   },
   "peerDependencies": {
-    "@spaceteams/warp": "workspace:*"
+    "@spaceteams/warp": "workspace:^"
   },
   "devDependencies": {
-    "@spaceteams/warp": "workspace:*"
+    "@spaceteams/warp": "workspace:^"
   },
   "scripts": {
     "build": "tsdown",
