@@ -15,10 +15,11 @@
     "@opentelemetry/api": ">=1.0.0"
   },
   "devDependencies": {
-    "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/sdk-metrics": "2.6.0",
-    "@opentelemetry/sdk-trace-node": "2.6.0",
-    "@opentelemetry/sdk-trace-base": "2.6.0"
+    "@spaceteams/warp": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-metrics": "2.9.0",
+    "@opentelemetry/sdk-trace-node": "2.9.0",
+    "@opentelemetry/sdk-trace-base": "2.9.0"
   },
   "scripts": {
     "build": "tsdown",
@@ -37,7 +38,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/spaceteams/warp.git",
-    "directory": "middleware/pino"
+    "directory": "middleware/otel"
   },
   "keywords": [
     "warp",
