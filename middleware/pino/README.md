@@ -1,93 +1,97 @@
 # @spaceteams/warp-pino
 
-Pino logger middleware for the warp composition runtime — creates child loggers with component-specific bindings for each execution scope.
+> Pino logger middleware for warp — child loggers with component-specific bindings.
+
+Automatically creates a [Pino](https://getpino.io/) child logger for each component scope, binding the component name and path into every log line.
+
+---
 
 ## Motivation
 
-In component-based architectures, flat log output quickly becomes unusable. `@spaceteams/warp-pino` automatically creates a Pino child logger for every component resolution, binding the component name and path into each log line. This gives you structured, correlated logs out of the box — making request tracing and component-level debugging straightforward without manual logger plumbing.
+In component-based architectures, flat log output quickly becomes unusable. `@spaceteams/warp-pino` creates a child logger per component execution, injecting `componentPath` and `component` metadata automatically. This gives you structured, correlated logs without manual logger plumbing.
+
+---
 
 ## Installation
 
-```sh
+```bash
 pnpm add @spaceteams/warp-pino pino
 ```
 
 Both `@spaceteams/warp` and `pino` are peer dependencies.
 
+---
+
 ## Usage
 
 ### Setting up the middleware
 
-```typescript
-import { createWarp } from "@spaceteams/warp";
-import { pino } from "@spaceteams/warp-pino";
-import type { LoggingCtx } from "@spaceteams/warp-pino";
-import pinoPkg from "pino";
+```ts
+import { buildRuntime, callable } from "@spaceteams/warp";
+import { pino, type LoggingCtx, type LoggingOptions } from "@spaceteams/warp-pino";
+import pinoLogger from "pino";
 
-type Ctx = LoggingCtx & {
-  // your additional context fields
-};
-
-const warp = createWarp<Ctx>({
-  middlewares: [pino()],
-  context: {
-    logger: pinoPkg(), // root logger
-  },
-});
+// Register the middleware and provide a root logger.
+const { resolve, component } = buildRuntime()
+  .use(pino())
+  .provide({ logger: pinoLogger() });
 ```
 
 ### Adding bindings per component
 
-Pass `logging` options when defining a component to attach custom bindings to its child logger:
+Pass `logging` in the callable/usecase meta to attach custom bindings:
 
-```typescript
-import type { LoggingOptions } from "@spaceteams/warp-pino";
-
-const myComponent = warp.component<MyOutput, LoggingOptions>(
-  "myComponent",
-  async (ctx) => {
-    ctx.logger.info("resolved with component-specific bindings");
-    return { /* ... */ };
-  },
+```ts
+const fetchOrder = callable<LoggingCtx, [string], Order, Partial<LoggingOptions>>(
   {
-    logging: {
-      bindings: { service: "billing", version: "1.2.0" },
-    },
+    name: "fetch-order",
+    logging: { bindings: { service: "orders", version: "2.1.0" } },
+  },
+  (ctx) => async (orderId) => {
+    // ctx.logger is a child logger with componentPath, component,
+    // service, and version fields bound automatically.
+    ctx.logger.info({ orderId }, "fetching order");
+    return db.findOrder(orderId);
   },
 );
 ```
 
-Each log line produced by `ctx.logger` inside this component will include `componentPath`, `component`, `service`, and `version` fields automatically.
+Each log line from `ctx.logger` inside this component will include `componentPath`, `component`, `service`, and `version`.
 
 ### Custom child logger options
 
-You can pass Pino `ChildLoggerOptions` to override the log level or other settings per component:
+Override the log level or other Pino child options per component:
 
-```typescript
-const verboseComponent = warp.component<MyOutput, LoggingOptions>(
-  "verboseComponent",
-  async (ctx) => {
-    ctx.logger.debug("this will appear even if root level is 'info'");
-    return { /* ... */ };
-  },
+```ts
+const debugHeavy = callable<LoggingCtx, [], void, Partial<LoggingOptions>>(
   {
+    name: "debug-heavy",
     logging: {
-      bindings: { service: "debug-heavy" },
+      bindings: { module: "diagnostics" },
       options: { level: "debug" },
     },
   },
+  (ctx) => async () => {
+    ctx.logger.debug("verbose output visible even if root level is 'info'");
+  },
 );
 ```
+
+### Components without logging options
+
+Components that don't declare `logging` in their meta pass through unchanged — the middleware is a no-op and `ctx.logger` remains the parent logger.
+
+---
 
 ## API
 
 ### `pino<Ctx, ChildCustomLevels>()`
 
-Returns a warp `Middleware<Ctx, LoggingOptions<ChildCustomLevels>>`. The middleware reads `options.logging` and, when present, creates a child logger from `ctx.logger` with the provided bindings merged with `componentPath` and `component` from the warp runtime metadata.
+Returns a warp `Middleware<Ctx, LoggingOptions<ChildCustomLevels>>`. Register it with `.use(pino())` on the runtime.
 
 ### `LoggingOptions<ChildCustomLevels>`
 
-```typescript
+```ts
 type LoggingOptions<ChildCustomLevels extends string = never> = {
   logging: {
     bindings: Bindings;
@@ -96,17 +100,17 @@ type LoggingOptions<ChildCustomLevels extends string = never> = {
 };
 ```
 
-Options shape expected by the middleware. `bindings` are merged into the child logger; `options` are forwarded to Pino's `.child()` call.
+RunOptions shape. `bindings` are merged into the child logger alongside warp metadata; `options` are forwarded to Pino's `.child()` call.
 
 ### `LoggingCtx`
 
-```typescript
-type LoggingCtx = {
-  logger: Logger;
-};
+```ts
+type LoggingCtx = { logger: Logger };
 ```
 
-Context constraint — your warp context must include a `logger` field holding a Pino `Logger` instance.
+Context constraint — your runtime context must include a `logger` field holding a Pino `Logger` instance.
+
+---
 
 ## License
 

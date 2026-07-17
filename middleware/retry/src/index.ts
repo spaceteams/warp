@@ -49,7 +49,7 @@ export type ResilienceOptions = {
  */
 export const resilience = <Ctx extends NonNullable<unknown>>(): Middleware<
   Ctx,
-  ResilienceOptions
+  Partial<ResilienceOptions>
 > => {
   return async (ctx, options, next) => {
     const policies: IPolicy[] = [];

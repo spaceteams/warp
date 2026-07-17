@@ -24,6 +24,8 @@ A curated set of examples showing how to use warp's dependency injection primiti
 
 | Example | Description |
 | ------- | ----------- |
+| [middleware-retry.test.ts](./middleware-retry.test.ts) | **Resilience (retry, timeout, circuit breaker)** — Uses `@spaceteams/warp-retry` to add retry with backoff, per-call timeouts, and a shared circuit breaker to components. |
+| [middleware-als.test.ts](./middleware-als.test.ts) | **AsyncLocalStorage bridge** — Uses `@spaceteams/warp-als` to expose request-scoped context to legacy code that can't receive warp parameters directly. |
 | [tracing-metrics.test.ts](./tracing-metrics.test.ts) | **Tracing & metrics** — Shows how to use `.use()` to register middleware and `ctx.run()` for nested scopes with span tracking. |
 | [transactions.test.ts](./transactions.test.ts) | **Transactions** — Shows how middleware can modify the context per scope to simulate database transactions with different isolation levels. |
 

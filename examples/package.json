@@ -12,6 +12,9 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@spaceteams/warp": "workspace:*"
+    "@spaceteams/warp": "workspace:*",
+    "@spaceteams/warp-retry": "workspace:*",
+    "@spaceteams/warp-als": "workspace:*",
+    "cockatiel": "4.0.0"
   }
 }

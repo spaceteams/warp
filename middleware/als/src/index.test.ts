@@ -7,7 +7,7 @@ type Exposed = { additionalExposed: number };
 it("threads context and result", async () => {
   const warpAls = createWarpAls<Ctx, Exposed>();
 
-  const result = await warpAls.middleware()({ additional: "value" }, {}, (inner) => {
+  const result = await warpAls.middleware<Ctx>()({ additional: "value" }, {}, (inner) => {
     expect(inner.additional).toEqual("value");
     return 1;
   });
@@ -22,7 +22,7 @@ it("exposes context through mapper inside scopes", async () => {
     expect(warpAls.getCtx()).toEqual({ additionalExposed: 1 });
   }
 
-  await warpAls.middleware()(
+  await warpAls.middleware<Ctx>()(
     { additional: "1" },
     { als: { extract: (ctx) => ({ additionalExposed: Number(ctx.additional) }) } },
     (inner) => {
@@ -42,7 +42,7 @@ it("only exposes context if mapper is available", async () => {
     expect(warpAls.getCtx()).toBeUndefined();
   }
 
-  await warpAls.middleware()({ additional: "1" }, {}, (inner) => {
+  await warpAls.middleware<Ctx>()({ additional: "1" }, {}, (inner) => {
     expect(inner.additional).toEqual("1");
     legacyFunction();
     return 1;
