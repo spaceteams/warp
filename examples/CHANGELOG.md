@@ -1,5 +1,18 @@
 # @spaceteams/warp-examples
 
+## 0.5.0
+
+### Minor Changes
+
+- bdd22ff: fix retry middleware
+
+### Patch Changes
+
+- Updated dependencies [bdd22ff]
+  - @spaceteams/warp-retry@1.1.0
+  - @spaceteams/warp-als@1.1.0
+  - @spaceteams/warp@1.1.0
+
 ## 0.4.0
 
 ### Minor Changes
