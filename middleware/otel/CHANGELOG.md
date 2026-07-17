@@ -1,5 +1,11 @@
 # @spaceteams/warp-otel
 
+## 1.1.0
+
+### Minor Changes
+
+- bdd22ff: fix retry middleware
+
 ## 1.0.0
 
 ### Minor Changes
