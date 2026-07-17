@@ -12,10 +12,11 @@
   },
   "peerDependencies": {
     "@spaceteams/warp": "workspace:*",
-    "cockatiel": ">=3.0.0"
+    "cockatiel": ">=4.0.0"
   },
   "devDependencies": {
-    "cockatiel": "3.2.1"
+    "@spaceteams/warp": "workspace:*",
+    "cockatiel": "4.0.0"
   },
   "scripts": {
     "build": "tsdown",

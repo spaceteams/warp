@@ -86,13 +86,13 @@ export function createCircuitBreaker(opts: ICircuitBreakerOptions): CircuitBreak
   return cockatielCircuitBreaker(handleAll, opts);
 }
 
+export type { CircuitBreakerPolicy, IBackoffFactory, ICircuitBreakerOptions };
 // Re-export useful cockatiel utilities
 export {
-  ExponentialBackoff,
-  ConstantBackoff,
   ConsecutiveBreaker,
+  ConstantBackoff,
+  ExponentialBackoff,
+  handleAll,
   SamplingBreaker,
   TimeoutStrategy,
-  handleAll,
 };
-export type { IBackoffFactory, CircuitBreakerPolicy, ICircuitBreakerOptions };
