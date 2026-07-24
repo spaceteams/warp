@@ -1,5 +1,18 @@
 # @spaceteams/warp-examples
 
+## 0.6.0
+
+### Minor Changes
+
+- de029ff: add combine kind
+
+### Patch Changes
+
+- Updated dependencies [de029ff]
+  - @spaceteams/warp@1.2.0
+  - @spaceteams/warp-retry@1.2.0
+  - @spaceteams/warp-als@1.2.0
+
 ## 0.5.0
 
 ### Minor Changes

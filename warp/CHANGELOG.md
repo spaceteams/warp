@@ -1,5 +1,11 @@
 # @spaceteams/warp
 
+## 1.2.0
+
+### Minor Changes
+
+- de029ff: add combine kind
+
 ## 1.1.0
 
 ### Minor Changes
