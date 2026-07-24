@@ -21,11 +21,14 @@ describe("combine", () => {
     return { deleted: id };
   });
 
-  const modelRepo = combine({
-    getById,
-    upsert,
-    del,
-  });
+  const modelRepo = combine(
+    { name: "modelRepo" },
+    {
+      getById,
+      upsert,
+      del,
+    },
+  );
 
   it("produces a component factory that returns an object of resolved factories", async () => {
     const { component, resolve } = new RuntimeBuilder().provide({});
@@ -73,7 +76,7 @@ describe("combine", () => {
       },
     );
 
-    const combined = combine({ withCtx });
+    const combined = combine({ name: "combined" }, { withCtx });
 
     const { component, resolve } = new RuntimeBuilder().provide({
       db: { find: (id: string) => `found:${id}` },
@@ -94,7 +97,7 @@ describe("combine", () => {
       (app: { cache: { get: () => string } }) => async () => app.cache.get(),
     );
 
-    const combined = combine({ needsDb, needsCache });
+    const combined = combine({ name: "combined" }, { needsDb, needsCache });
 
     // The combined factory requires both db AND cache in the context
     const { component, resolve } = new RuntimeBuilder().provide({
@@ -108,7 +111,7 @@ describe("combine", () => {
   });
 
   it("works with an empty record", async () => {
-    const empty = combine({});
+    const empty = combine({}, {});
     const { component, resolve } = new RuntimeBuilder().provide({});
     const resolved = await resolve(component(empty));
     expect(resolved).toEqual({});
