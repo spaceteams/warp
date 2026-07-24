@@ -47,11 +47,14 @@ const deactivateUser = callable<Ctx, [string], boolean>(
 );
 
 // Bundle the three operations into a single "userModule" component.
-const userModule = combine({
-  find: findUser,
-  create: createUser,
-  deactivate: deactivateUser,
-});
+const userModule = combine(
+  { name: "userModule" },
+  {
+    find: findUser,
+    create: createUser,
+    deactivate: deactivateUser,
+  },
+);
 
 // Use `InferCombined` to extract the module's output type for dependents.
 type UserModule = InferCombined<typeof userModule>;
@@ -71,10 +74,10 @@ const onboardUser = usecase<{ users: UserModule }, [string, string], string>(
 );
 
 // ---------------------------------------------------------------------------
-// Tests
+// Basic Usage
 // ---------------------------------------------------------------------------
 
-describe("combine — bundling into modules", () => {
+describe("bundling into modules", () => {
   function setup() {
     const db = new Map<string, { name: string; active: boolean }>();
     const { resolve, component, explain } = buildRuntime().provide({ db });
@@ -88,7 +91,7 @@ describe("combine — bundling into modules", () => {
     const { explain, graph } = setup();
     expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
       "└── onboard-user [usecase]
-          └── users"
+          └── users -> userModule [module]"
     `);
   });
 
@@ -123,11 +126,36 @@ describe("combine — bundling into modules", () => {
   });
 });
 
+describe("using modules directly", () => {
+  function setup() {
+    const db = new Map<string, { name: string; active: boolean }>();
+    const { resolve, component, explain } = buildRuntime().provide({ db });
+    const graph = component(userModule);
+    return { db, resolve, component, explain, graph };
+  }
+
+  it("can be explained", () => {
+    const { explain, graph } = setup();
+    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`"└── userModule [module]"`);
+  });
+
+  it("can use module", async () => {
+    const { resolve, graph, db } = setup();
+    const module = await resolve(graph);
+
+    expect(await module.create("u1", "Alice")).toEqual({
+      id: "u1",
+      name: "Alice",
+    });
+    expect(db.get("u1")).toEqual({ name: "Alice", active: true });
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Combining modules that need different context slices
 // ---------------------------------------------------------------------------
 
-describe("combine — context intersection", () => {
+describe("context intersection", () => {
   // Two callables that each require a different part of the context.
   const fromDb = callable<{ db: { query: () => string } }, [], string>(
     { name: "from-db" },
@@ -140,7 +168,7 @@ describe("combine — context intersection", () => {
 
   // `combine` intersects the two context types: the resulting factory
   // requires both `db` and `cache`.
-  const dataModule = combine({ fromDb, fromCache });
+  const dataModule = combine({ name: "dataModule" }, { fromDb, fromCache });
 
   it("intersects context requirements from all inner factories", async () => {
     const { resolve, component } = buildRuntime().provide({

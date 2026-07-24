@@ -6,12 +6,14 @@ import type {
   InferScopeContext,
   UnionToIntersection,
 } from "../component";
+import type { ComponentMeta } from "../component/component-meta";
 
 export type CombinedOutput<T extends Record<string, AnyFactory>> = {
   [K in keyof T]: ReturnType<T[K]>;
 };
 
 export function combine<const T extends Record<string, AnyFactory>>(
+  options: Omit<ComponentMeta, "kind">,
   factories: T,
 ): ComponentFactory<
   UnionToIntersection<InferCtx<T[keyof T]>>,
@@ -27,6 +29,13 @@ export function combine<const T extends Record<string, AnyFactory>>(
     }
     return result;
   };
+  Object.assign(factory, {
+    meta: {
+      kind: "module" as const,
+      name: options.name,
+      tags: options.tags,
+    },
+  });
   return factory as ComponentFactory<
     UnionToIntersection<InferCtx<T[keyof T]>>,
     UnionToIntersection<InferScopeContext<T[keyof T]>>,
