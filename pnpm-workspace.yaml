@@ -2,3 +2,5 @@ packages:
   - warp
   - examples
   - middleware/*
+allowBuilds:
+  esbuild: false
