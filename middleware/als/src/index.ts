@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { Middleware } from "@spaceteams/warp";
 
 export type AlsOptions<Ctx, ExposedCtx> = {
-  als: {
+  als?: {
     extract: (ctx: Ctx) => ExposedCtx;
   };
 };
