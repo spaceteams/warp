@@ -1,6 +1,6 @@
 {
   "name": "@spaceteams/warp-retry",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Retry middleware for Warp powered by cockatiel",
   "type": "module",
   "files": [
