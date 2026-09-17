@@ -1,5 +1,11 @@
 # @spaceteams/warp-otel
 
+## 1.2.1
+
+### Patch Changes
+
+- 1197f66: improve interop of middleware with warp
+
 ## 1.2.0
 
 ## 1.1.0
