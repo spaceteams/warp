@@ -12,7 +12,7 @@ import {
 import type { Middleware, WarpMeta } from "@spaceteams/warp";
 
 export type OtelRunOptions = {
-  otel: {
+  otel?: {
     spanName?: string;
     attributes?: Attributes;
     recordMetrics?: boolean;
