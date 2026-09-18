@@ -10,6 +10,26 @@ export type Repo<Ctx, ScopeContext, Out, RunOptions> = ComponentFactory<
   unknown,
   Out
 >;
+
+/**
+ * Creates a repository component factory.
+ *
+ * The factory is resolved immediately during dependency graph resolution.
+ * **Middleware is NOT invoked** during resolution — the returned object is
+ * created directly with the current scope context. If you need middleware-managed
+ * context (e.g. child loggers, tracing spans) inside repository methods, use
+ * `callable` instead or access the context through a parent `usecase` / `callable`.
+ *
+ * @param options - Component metadata (name, tags). `kind` is automatically set to "repo".
+ * @param fn - Factory function that receives the run context and returns the repository object.
+ *
+ * @example
+ * ```ts
+ * const userRepo = repo({ name: "user-repo" }, (ctx) => ({
+ *   findById: (id: string) => ctx.db.query(id),
+ * }));
+ * ```
+ */
 export function repo<Ctx, Out, RunOptions = NoRunOptions, ScopeContext = NoScopeContext>(
   options: Omit<ComponentMeta, "kind">,
   fn: (app: Run<Ctx, ScopeContext, RunOptions>) => Out,

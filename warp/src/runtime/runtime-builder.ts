@@ -1,5 +1,6 @@
 import { Lazy } from "../lazy";
 import type { Middleware } from "../middleware";
+import type { WarpMeta } from "../run";
 import { Runtime } from "./runtime";
 
 export class RuntimeBuilder<AmbientContext, ScopeContext = unknown, Options = unknown> {
@@ -39,6 +40,7 @@ export class RuntimeBuilder<AmbientContext, ScopeContext = unknown, Options = un
       ctx: AmbientContext,
       options: Partial<Options>,
       next: (ctx: ScopeContext & AmbientContext) => Promise<T> | T,
+      warp?: WarpMeta,
     ): Promise<T> | T {
       const dispatch = (i: number, currentCtx: AmbientContext): Promise<T> | T => {
         const mw = middlewares[i];
@@ -46,8 +48,11 @@ export class RuntimeBuilder<AmbientContext, ScopeContext = unknown, Options = un
           return next(currentCtx as ScopeContext & AmbientContext);
         }
 
-        return mw(currentCtx, options, (nextCtx: ScopeContext & AmbientContext) =>
-          dispatch(i + 1, nextCtx),
+        return mw(
+          currentCtx,
+          options,
+          (nextCtx: ScopeContext & AmbientContext) => dispatch(i + 1, nextCtx),
+          warp,
         );
       };
 
