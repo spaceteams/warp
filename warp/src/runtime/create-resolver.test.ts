@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ComponentRef } from "../component";
 import { defineFunctionalComponent } from "../component/functional-component";
 import type { Middleware, NoRunOptions, NoScopeContext } from "../middleware";
+import type { WarpMeta } from "../run";
 import { createResolver } from "./create-resolver";
 
 function noop<Ctx>(): Middleware<Ctx> {
@@ -463,6 +464,118 @@ describe("option propagation", () => {
       await secondLevel.run({ action: "update" }, async (thirdLevel) => {
         expect(thirdLevel.warp).toEqual({ component: { name: "root" } });
       });
+    });
+  });
+});
+
+describe("middleware semantics", () => {
+  it("forwards warp meta through middleware", async () => {
+    const receivedWarps: Array<WarpMeta | undefined> = [];
+    const mw: Middleware<NonNullable<unknown>> = (_ctx, _options, next, warp) => {
+      receivedWarps.push(warp);
+      return next({});
+    };
+
+    const resolve = createResolver(mw);
+    const comp = defineFunctionalComponent<NonNullable<unknown>, NoScopeContext, NoRunOptions>();
+    const root = comp((a) => a, {}, { name: "test-component", kind: "service" });
+
+    const result = resolve(root, {});
+
+    // Root resolution does not invoke middleware
+    expect(receivedWarps).toEqual([]);
+    expect(result.warp).toEqual({
+      component: { name: "test-component", kind: "service" },
+    });
+
+    // ctx.run triggers middleware with warp meta
+    await result.run({}, async (inner) => {
+      expect(inner.warp).toEqual({
+        component: { name: "test-component", kind: "service" },
+      });
+    });
+
+    expect(receivedWarps).toEqual([{ component: { name: "test-component", kind: "service" } }]);
+  });
+
+  it("does NOT apply middleware to non-callable component factories during resolution", () => {
+    const mwCalls: number[] = [];
+    const mw: Middleware<{ level: number }> = (ctx, _options, next) => {
+      mwCalls.push(ctx.level);
+      return next(ctx as { level: number } & {});
+    };
+
+    const resolve = createResolver(mw);
+    const comp = defineFunctionalComponent<{ level: number }, NoScopeContext, NoRunOptions>();
+
+    // A repo-like factory (returns an object immediately, no ctx.run)
+    const repoFactory = comp((a) => ({
+      getLevel: () => a.level,
+    }));
+
+    const root = resolve(
+      comp((a) => a, { repo: repoFactory }),
+      { level: 0 },
+    );
+
+    // Middleware was NOT called during repo resolution
+    expect(mwCalls).toEqual([]);
+
+    // Repo is resolved immediately with the original scope context (level=0)
+    expect(root.repo.getLevel()).toBe(0);
+
+    // run() on the root triggers middleware because it calls a.run
+    root.run({}, (inner) => {
+      expect(inner.level).toBe(0); // middleware doesn't modify level in this test
+      expect(mwCalls).toEqual([0]);
+    });
+  });
+
+  it("does NOT apply middleware to deeply nested non-callable dependencies", () => {
+    const mwCalls: string[] = [];
+    const mw: Middleware<{ level: number }> = (ctx, _options, next) => {
+      mwCalls.push(`level-${ctx.level}`);
+      return next(ctx as { level: number } & {});
+    };
+
+    const resolve = createResolver(mw);
+    const comp = defineFunctionalComponent<{ level: number }, NoScopeContext, NoRunOptions>();
+
+    const connection = comp((a) => ({
+      getLevel: () => a.level,
+    }));
+
+    const db = comp(
+      (a) => ({
+        getLevel: () => a.level,
+        connection: a.connection,
+      }),
+      { connection },
+    );
+
+    const repo = comp(
+      (a) => ({
+        getLevel: () => a.level,
+        db: a.db,
+      }),
+      { db },
+    );
+
+    const root = resolve(
+      comp((a) => a, { repo }),
+      { level: 0 },
+    );
+
+    // Accessing repo triggers resolution of db and connection — middleware is never invoked
+    expect(root.repo.getLevel()).toBe(0);
+    expect(root.repo.db.getLevel()).toBe(0);
+    expect(root.repo.db.connection.getLevel()).toBe(0);
+    expect(mwCalls).toEqual([]);
+
+    // Only ctx.run triggers middleware
+    root.run({}, (inner) => {
+      expect(mwCalls).toEqual(["level-0"]);
+      expect(inner.repo.getLevel()).toBe(0); // still 0 because mw doesn't modify
     });
   });
 });
