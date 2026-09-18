@@ -1,5 +1,11 @@
 # @spaceteams/warp-als
 
+## 1.2.2
+
+### Patch Changes
+
+- 466826c: fix: pass warp metadata into middleware
+
 ## 1.2.1
 
 ### Patch Changes
