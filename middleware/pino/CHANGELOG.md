@@ -1,5 +1,11 @@
 # @spaceteams/warp-pino
 
+## 1.3.0
+
+### Minor Changes
+
+- 6bd523d: make repo, client, service special cases of combine
+
 ## 1.2.2
 
 ### Patch Changes
