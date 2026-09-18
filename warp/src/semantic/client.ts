@@ -1,16 +1,8 @@
-import type {
-  AnyFactory,
-  ComponentFactory,
-  InferCtx,
-  InferRunOptions,
-  InferScopeContext,
-  UnionToIntersection,
-} from "../component";
+import type { AnyFactory, InferOut } from "../component";
 import type { ComponentMeta } from "../component/component-meta";
+import type { CombinedFactory, CombinedOutput, ValidFactories } from "./combined-factory";
 
-export type ClientOutput<T extends Record<string, AnyFactory>> = {
-  [K in keyof T]: ReturnType<T[K]>;
-};
+export type ClientOutput<T extends Record<string, AnyFactory>> = CombinedOutput<T>;
 
 /**
  * Creates a client component factory that bundles multiple factories into
@@ -30,16 +22,12 @@ export type ClientOutput<T extends Record<string, AnyFactory>> = {
  * });
  * ```
  */
-export function client<const T extends Record<string, AnyFactory>>(
+export function client<const T extends Record<string, unknown>>(
   options: Omit<ComponentMeta, "kind">,
-  factories: T,
-): ComponentFactory<
-  UnionToIntersection<InferCtx<T[keyof T]>>,
-  UnionToIntersection<InferScopeContext<T[keyof T]>>,
-  UnionToIntersection<InferRunOptions<T[keyof T]>>,
-  unknown,
-  ClientOutput<T>
-> & { meta: { kind: "client"; name?: string; tags?: string[] } } {
+  factories: T & ValidFactories<T>,
+): CombinedFactory<ValidFactories<T>> & {
+  meta: { kind: "client"; name?: string; tags?: string[] };
+} {
   const factory = (ctx: unknown) => {
     const result: Record<string, unknown> = {};
     for (const [key, f] of Object.entries(factories)) {
@@ -54,16 +42,9 @@ export function client<const T extends Record<string, AnyFactory>>(
       tags: options.tags,
     },
   });
-  return factory as ComponentFactory<
-    UnionToIntersection<InferCtx<T[keyof T]>>,
-    UnionToIntersection<InferScopeContext<T[keyof T]>>,
-    UnionToIntersection<InferRunOptions<T[keyof T]>>,
-    unknown,
-    ClientOutput<T>
-  > & { meta: { kind: "client"; name?: string; tags?: string[] } };
+  return factory as CombinedFactory<ValidFactories<T>> & {
+    meta: { kind: "client"; name?: string; tags?: string[] };
+  };
 }
 
-export type InferClient<T> =
-  T extends ComponentFactory<infer _Ctx, infer _SC, infer _RO, infer _Deps, infer Out>
-    ? Out
-    : never;
+export type InferClient<T> = InferOut<T>;

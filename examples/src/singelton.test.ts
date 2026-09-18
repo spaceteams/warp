@@ -1,9 +1,4 @@
-import {
-  buildRuntime,
-  callable,
-  type InferCallable,
-  usecase,
-} from "@spaceteams/warp";
+import { buildRuntime, usecase } from "@spaceteams/warp";
 import { expect, it } from "vitest";
 
 // Singletons

@@ -10,12 +10,15 @@ import { describe, expect, it } from "vitest";
 //
 // This is useful when you want to mock or stub a dependency without providing
 // the full factory implementation.
-const mailer = client({ name: "mailer" }, {
-  send: callable(
-    { name: "send" },
-    () => async (to: string, subject: string) => `sent:${to}:${subject}`,
-  ),
-});
+const mailer = client(
+  { name: "mailer" },
+  {
+    send: callable(
+      { name: "send" },
+      () => async (to: string, subject: string) => `sent:${to}:${subject}`,
+    ),
+  },
+);
 
 type Mailer = InferClient<typeof mailer>;
 

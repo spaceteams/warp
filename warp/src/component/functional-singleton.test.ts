@@ -1,7 +1,6 @@
 import { expect, it } from "vitest";
 import { buildRuntime } from "../runtime";
 
-
 it("caches across resolves", async () => {
   const { resolve, singleton } = buildRuntime().provide({ resource: "some-resource" });
   let instantiated = 0;

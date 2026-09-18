@@ -47,11 +47,8 @@ export function callable<
     (ctx) =>
     (...args) => {
       const isRoot =
-        ctx.warp?.component?.name === options.name &&
-        ctx.warp?.component?.kind === options.kind;
-      const prefix = isRoot
-        ? undefined
-        : (ctx.warp?.componentPath ?? ctx.warp?.component?.name);
+        ctx.warp?.component?.name === options.name && ctx.warp?.component?.kind === options.kind;
+      const prefix = isRoot ? undefined : (ctx.warp?.componentPath ?? ctx.warp?.component?.name);
       const callableWarp = {
         component: { kind: options.kind, name: options.name, tags: options.tags },
         componentPath: prefix ? `${prefix}.${options.name}` : undefined,

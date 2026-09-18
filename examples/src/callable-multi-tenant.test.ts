@@ -21,12 +21,15 @@ type BaseContext = {
   logger: (msg: string) => void;
 };
 
-const tenantRepo = repo({ name: "tenant-repo" }, {
-  get: callable({ name: "get" }, () => async (tenantId: string) => ({
-    id: tenantId,
-    plan: tenantId === "acme" ? ("enterprise" as const) : ("starter" as const),
-  })),
-});
+const tenantRepo = repo(
+  { name: "tenant-repo" },
+  {
+    get: callable({ name: "get" }, () => async (tenantId: string) => ({
+      id: tenantId,
+      plan: tenantId === "acme" ? ("enterprise" as const) : ("starter" as const),
+    })),
+  },
+);
 type TenantRepo = InferRepo<typeof tenantRepo>;
 
 const getRateLimit = callable<BaseContext & { tenantRepo: TenantRepo }, [string], number>(
@@ -71,12 +74,15 @@ describe("callable — tenantId as argument", () => {
 
 type TenantContext = BaseContext & { tenantId: string };
 
-const tenantRepoCtx = repo({ name: "tenant-repo" }, {
-  get: callable({ name: "get" }, (ctx: TenantContext) => async () => ({
-    id: ctx.tenantId,
-    plan: ctx.tenantId === "acme" ? ("enterprise" as const) : ("starter" as const),
-  })),
-});
+const tenantRepoCtx = repo(
+  { name: "tenant-repo" },
+  {
+    get: callable({ name: "get" }, (ctx: TenantContext) => async () => ({
+      id: ctx.tenantId,
+      plan: ctx.tenantId === "acme" ? ("enterprise" as const) : ("starter" as const),
+    })),
+  },
+);
 type TenantRepoCtx = InferRepo<typeof tenantRepoCtx>;
 
 const getRateLimitCtx = callable<TenantContext & { tenantRepo: TenantRepoCtx }, [], number>(
