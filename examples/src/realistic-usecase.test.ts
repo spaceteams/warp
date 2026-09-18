@@ -1,4 +1,4 @@
-import { buildRuntime, type ComponentMeta, type InferRepo, repo, usecase } from "@spaceteams/warp";
+import { buildRuntime, callable, type ComponentMeta, type InferRepo, repo, usecase } from "@spaceteams/warp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Realistic use case
@@ -20,14 +20,18 @@ type Ctx = {
 
 const customerRepo = repo(
   { name: "customer-repo", tags: ["customer"] },
-  () => (customerId: string) => ({
-    id: customerId,
-    active: true,
-  }),
+  {
+    getById: callable({ name: "getById" }, () => async (customerId: string) => ({
+      id: customerId,
+      active: true,
+    })),
+  },
 );
-type CustomerRepo = ReturnType<typeof customerRepo>;
+type CustomerRepo = InferRepo<typeof customerRepo>;
 
-const priceRepo = repo({ name: "price-repo" }, () => (_productId: string) => 100);
+const priceRepo = repo({ name: "price-repo" }, {
+  get: callable({ name: "get" }, () => async (_productId: string) => 100),
+});
 type PriceRepo = InferRepo<typeof priceRepo>;
 
 class PricingService {
@@ -41,8 +45,8 @@ class PricingService {
   // to highlight that a class can be typed to its required slice of context.
   constructor(private readonly ctx: Pick<Ctx, "config"> & { priceRepo: PriceRepo }) {}
 
-  calculate(productId: string) {
-    const basePrice = this.ctx.priceRepo(productId);
+  async calculate(productId: string): Promise<number> {
+    const basePrice = await this.ctx.priceRepo.get(productId);
     return this.ctx.config.pricingMode === "gross" ? basePrice * 1.19 : basePrice;
   }
 }
@@ -60,12 +64,12 @@ type Offer = {
 const createOffer = usecase<Ctx & UseCaseDeps, [string, string], Offer>(
   { name: "create-offer" },
   (ctx) => async (customerId, productId) => {
-    const customer = ctx.customerRepo(customerId);
+    const customer = await ctx.customerRepo.getById(customerId);
     if (!customer.active) {
       throw new Error("inactive customer");
     }
 
-    const price = ctx.pricingService.calculate(productId);
+    const price = await ctx.pricingService.calculate(productId);
     ctx.logger.info(`user ${ctx.userId} created offer for ${customerId}`);
 
     return {

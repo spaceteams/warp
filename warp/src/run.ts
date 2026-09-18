@@ -10,6 +10,7 @@ export type Run<AmbientContext, ScopeContext = unknown, RunOptions = unknown> = 
   run: <T>(
     options: RunOptions,
     inner: (app: Run<AmbientContext & ScopeContext, ScopeContext, RunOptions>) => Promise<T> | T,
+    overrideWarp?: WarpMeta,
   ) => Promise<T> | T;
   warp?: WarpMeta;
 };

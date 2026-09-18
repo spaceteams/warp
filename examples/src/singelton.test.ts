@@ -1,9 +1,7 @@
 import {
   buildRuntime,
-  client,
-  type InferClient,
-  type InferService,
-  service,
+  callable,
+  type InferCallable,
   usecase,
 } from "@spaceteams/warp";
 import { expect, it } from "vitest";
@@ -32,30 +30,27 @@ const { explain, resolve, singleton, component } = buildRuntime().provide({
 
 // the singleton instance detects whether it is keyed as "shared" and counts instantiations accordingly
 const instantiated = { shared: 0, singleton: 0 };
-const mySingleton = client({}, (ctx) => {
+const mySingleton = (ctx: { warp?: { componentKey?: string } }) => {
   if (ctx.warp?.componentKey === "shared") {
     instantiated.shared++;
   } else {
     instantiated.singleton++;
   }
   return () => "called";
-});
-type MySingleton = InferClient<typeof mySingleton>;
+};
+type MySingleton = ReturnType<typeof mySingleton>;
 
 // let's define a service and a usecase that depend on the singleton in multiple places.
-const nestedService = service<{ singleton: MySingleton; shared: MySingleton }, () => string>(
-  { name: "NestedService " },
-  (ctx) => () => {
-    ctx.singleton();
-    ctx.shared();
-    return "called";
-  },
-);
+const nestedService = (ctx: { singleton: MySingleton; shared: MySingleton }) => () => {
+  ctx.singleton();
+  ctx.shared();
+  return "called";
+};
 const rootUsecase = usecase<
-  { shared: MySingleton; nested: InferService<typeof nestedService> },
+  { shared: MySingleton; nested: ReturnType<typeof nestedService> },
   [],
   string
->({ name: "RooUsecase " }, (ctx) => async () => {
+>({ name: "RooUsecase" }, (ctx) => async () => {
   ctx.shared();
   ctx.nested();
   return "called";
@@ -90,14 +85,14 @@ const resolved2 = await resolve(graph2);
 it("can be explained", () => {
   expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
     "└── my-graph [usecase]
-        ├── shared [client]
-        └── nested -> NestedService  [service]
-            ├── singleton [client]
-            └── shared [client]"
+        ├── shared
+        └── nested
+            ├── singleton
+            └── shared"
   `);
   expect(explain(graph2, "ascii", true)).toMatchInlineSnapshot(`
     "└── my-graph-2
-        └── shared [client]"
+        └── shared"
   `);
 });
 

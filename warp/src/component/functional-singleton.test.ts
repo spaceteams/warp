@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { buildRuntime } from "../runtime";
-import { client } from "../semantic";
+
 
 it("caches across resolves", async () => {
   const { resolve, singleton } = buildRuntime().provide({ resource: "some-resource" });
@@ -26,14 +26,14 @@ it("caches per singleton instance", async () => {
   const { resolve, singleton, component } = buildRuntime().provide({ resource: "some-resource" });
 
   const instantiated = { shared: 0, singleton: 0 };
-  const mySingleton = client({}, (ctx) => {
+  const mySingleton = (ctx: { warp?: { componentKey?: string } }) => {
     if (ctx.warp?.componentKey === "shared") {
       instantiated.shared++;
     } else {
       instantiated.singleton++;
     }
     return () => "called";
-  });
+  };
 
   const shared = singleton(mySingleton);
   const component1 = component(
