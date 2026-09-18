@@ -86,8 +86,8 @@ export function createResolver<AmbientContext, ScopeContext, RunOptions>(
       return {
         ...scopeCtx,
         warp,
-        run: (nestedOptions, nestedInner) =>
-          runWithContext(scopeCtx, nestedOptions, nestedInner, warp),
+        run: (nestedOptions, nestedInner, overrideWarp) =>
+          runWithContext(scopeCtx, nestedOptions, nestedInner, overrideWarp ?? warp),
       };
     };
 

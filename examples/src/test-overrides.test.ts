@@ -1,4 +1,4 @@
-import { buildRuntime, client, usecase } from "@spaceteams/warp";
+import { buildRuntime, callable, client, type InferClient, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Test overrides example
@@ -10,21 +10,27 @@ import { describe, expect, it } from "vitest";
 //
 // This is useful when you want to mock or stub a dependency without providing
 // the full factory implementation.
-const mailer = client({ name: "mailer" }, () => ({
-  send: (to: string, subject: string) => `sent:${to}:${subject}`,
-}));
+const mailer = client(
+  { name: "mailer" },
+  {
+    send: callable(
+      { name: "send" },
+      () => async (to: string, subject: string) => `sent:${to}:${subject}`,
+    ),
+  },
+);
 
-type Mailer = ReturnType<typeof mailer>;
+type Mailer = InferClient<typeof mailer>;
 
 const inviteUser = usecase<{ mailer: Mailer }, [string], string>(
   { name: "invite-user" },
   (ctx) => async (email) => {
-    return ctx.mailer.send(email, "Welcome");
+    return await ctx.mailer.send(email, "Welcome");
   },
 );
 
 const fakeMailer: Mailer = {
-  send: (to, subject) => `fake:${to}:${subject}`,
+  send: async (to, subject) => `fake:${to}:${subject}`,
 };
 
 describe("test overrides", () => {

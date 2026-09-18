@@ -46,7 +46,15 @@ export function callable<
   const factory: Callable<Ctx, ScopeContext, Args, Result, RunOptions> =
     (ctx) =>
     (...args) => {
-      return ctx.run(options, (inner) => fn(inner)(...args)) as Promise<Result>;
+      const isRoot =
+        ctx.warp?.component?.name === options.name && ctx.warp?.component?.kind === options.kind;
+      const prefix = isRoot ? undefined : (ctx.warp?.componentPath ?? ctx.warp?.component?.name);
+      const callableWarp = {
+        component: { kind: options.kind, name: options.name, tags: options.tags },
+        componentPath: prefix ? `${prefix}.${options.name}` : undefined,
+        componentKey: options.name,
+      };
+      return ctx.run(options, (inner) => fn(inner)(...args), callableWarp) as Promise<Result>;
     };
   Object.assign(factory, {
     meta: {

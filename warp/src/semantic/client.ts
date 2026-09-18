@@ -1,40 +1,40 @@
-import type { ComponentFactory } from "../component";
+import type { AnyFactory, InferOut } from "../component";
 import type { ComponentMeta } from "../component/component-meta";
-import type { NoRunOptions, NoScopeContext } from "../middleware";
-import type { Run } from "../run";
+import type { CombinedFactory, CombinedOutput, ValidFactories } from "./combined-factory";
 
-export type Client<Ctx, ScopeContext, Out, RunOptions> = ComponentFactory<
-  Ctx,
-  ScopeContext,
-  RunOptions,
-  unknown,
-  Out
->;
+export type ClientOutput<T extends Record<string, AnyFactory>> = CombinedOutput<T>;
 
 /**
- * Creates a client component factory.
+ * Creates a client component factory that bundles multiple factories into
+ * a single component with `kind: "client"`.
  *
- * The factory is resolved immediately during dependency graph resolution.
- * **Middleware is NOT invoked** during resolution — the returned object is
- * created directly with the current scope context. If you need middleware-managed
- * context (e.g. child loggers, tracing spans) inside client methods, use
- * `callable` instead or access the context through a parent `usecase` / `callable`.
+ * Each value in the record should typically be a `callable` or `usecase` so
+ * that middleware fires when the method is invoked. Plain functions can also
+ * be used, but they will not trigger middleware.
  *
  * @param options - Component metadata (name, tags). `kind` is automatically set to "client".
- * @param fn - Factory function that receives the run context and returns the client object.
+ * @param factories - Record of named factories to bundle.
  *
  * @example
  * ```ts
- * const httpClient = client({ name: "api-client" }, (ctx) => ({
- *   get: (url: string) => ctx.fetch(url),
- * }));
+ * const apiClient = client({ name: "api-client" }, {
+ *   getUser: callable({ name: "getUser" }, (ctx) => async (id: string) => ctx.fetch(`/users/${id}`)),
+ * });
  * ```
  */
-export function client<Ctx, Out, RunOptions = NoRunOptions, ScopeContext = NoScopeContext>(
+export function client<const T extends Record<string, unknown>>(
   options: Omit<ComponentMeta, "kind">,
-  fn: (app: Run<Ctx, ScopeContext, RunOptions>) => Out,
-): Client<Ctx, ScopeContext, Out, RunOptions> {
-  const factory: Client<Ctx, ScopeContext, Out, RunOptions> = fn;
+  factories: T & ValidFactories<T>,
+): CombinedFactory<ValidFactories<T>> & {
+  meta: { kind: "client"; name?: string; tags?: string[] };
+} {
+  const factory = (ctx: unknown) => {
+    const result: Record<string, unknown> = {};
+    for (const [key, f] of Object.entries(factories)) {
+      result[key] = (f as (ctx: unknown) => unknown)(ctx);
+    }
+    return result;
+  };
   Object.assign(factory, {
     meta: {
       kind: "client" as const,
@@ -42,7 +42,9 @@ export function client<Ctx, Out, RunOptions = NoRunOptions, ScopeContext = NoSco
       tags: options.tags,
     },
   });
-  return factory;
+  return factory as CombinedFactory<ValidFactories<T>> & {
+    meta: { kind: "client"; name?: string; tags?: string[] };
+  };
 }
-export type InferClient<T> =
-  T extends Client<infer _Ctx, infer _ScopeContext, infer Out, infer _RunOptions> ? Out : never;
+
+export type InferClient<T> = InferOut<T>;

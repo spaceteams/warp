@@ -4,12 +4,12 @@ import { repo, service } from "../semantic";
 import { usecase } from "../semantic/usecase";
 
 const { component, explain } = new RuntimeBuilder().provide({ context: "1" });
-const products = component(repo({ name: "ProductRepo" }, () => null));
-const prices = component(repo({ name: "PriceRepo", tags: ["database"] }, () => null));
-const myService = component(
-  service({ name: "MyService", tags: ["business-logic"] }, () => null),
-  { products, prices },
-);
+const products = component(repo({ name: "ProductRepo" }, {}));
+const prices = component(repo({ name: "PriceRepo", tags: ["database"] }, {}));
+const myService = component(service({ name: "MyService", tags: ["business-logic"] }, {}), {
+  products,
+  prices,
+});
 const anotherService = component(() => null, { products });
 const controller = component(
   usecase({ name: "MyController", tags: ["api", "public"] }, () => async () => null),
@@ -135,9 +135,7 @@ it("includes kind and tags in native format", () => {
 });
 
 it("explains component with tags", () => {
-  const taggedRepo = component(
-    repo({ name: "TaggedRepo", tags: ["cache", "redis", "fast"] }, () => null),
-  );
+  const taggedRepo = component(repo({ name: "TaggedRepo", tags: ["cache", "redis", "fast"] }, {}));
   const result = explain(taggedRepo, "native");
 
   expect(result.name).toBe("TaggedRepo");

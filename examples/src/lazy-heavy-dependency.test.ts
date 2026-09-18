@@ -1,4 +1,4 @@
-import { buildRuntime, client, type InferClient, usecase } from "@spaceteams/warp";
+import { buildRuntime, usecase } from "@spaceteams/warp";
 import { describe, expect, it, vi } from "vitest";
 
 // Lazy / heavy dependency example
@@ -10,13 +10,14 @@ import { describe, expect, it, vi } from "vitest";
 
 let heavyCreated = 0;
 
-const heavyPdfClient = client({ name: "heavy-client" }, (ctx: { expensiveToken: string }) => {
+const heavyPdfClient = (ctx: { expensiveToken: string }) => {
   heavyCreated++;
   return {
     render: (content: string) => `pdf:${content} using ${ctx.expensiveToken}`,
   };
-});
-type HeavyPdfClient = InferClient<typeof heavyPdfClient>;
+};
+
+type HeavyPdfClient = ReturnType<typeof heavyPdfClient>;
 
 type Deps = { heavyPdfClient: HeavyPdfClient };
 
@@ -47,7 +48,7 @@ describe("lazy dependencies", () => {
     const { explain, graph } = setup();
     expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
         "└── generate-preview [usecase]
-            └── heavyPdfClient -> heavy-client [client]"
+            └── heavyPdfClient"
       `);
   });
 

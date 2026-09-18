@@ -1,4 +1,4 @@
-import { buildRuntime, usecase } from "@spaceteams/warp";
+import { buildRuntime, combine, usecase } from "@spaceteams/warp";
 import type { Logger } from "pino";
 import { expect, it, vi } from "vitest";
 import { type LoggingOptions, pino } from ".";
@@ -49,6 +49,31 @@ it("uses meta", async () => {
     {
       component: { kind: "usecase", name: "customer-usecase" },
       componentPath: undefined,
+    },
+    undefined,
+  );
+  expect(info).toHaveBeenCalledWith("called");
+});
+
+it("uses meta 2", async () => {
+  const info = vi.fn();
+  const child = vi.fn().mockReturnValue({ info } as unknown as Logger);
+  const logger = { child } as unknown as Logger;
+  const { resolve, component } = buildRuntime().use(pino()).provide({ logger });
+  const customerServiceModule = combine(
+    { name: "customer-service" },
+    {
+      get: usecase({ name: "customer-usecase" }, (ctx: { logger: Logger }) => async () => {
+        ctx.logger.info("called");
+      }),
+    },
+  );
+  const customerService = await resolve(component(customerServiceModule));
+  customerService.get();
+  expect(child).toHaveBeenCalledWith(
+    {
+      component: { kind: "usecase", name: "customer-usecase" },
+      componentPath: "customer-service.customer-usecase",
     },
     undefined,
   );

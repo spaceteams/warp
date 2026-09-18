@@ -1,4 +1,11 @@
-import { buildRuntime, type Middleware, repo, usecase } from "@spaceteams/warp";
+import {
+  buildRuntime,
+  callable,
+  type InferRepo,
+  type Middleware,
+  repo,
+  usecase,
+} from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Transactions example
@@ -24,28 +31,40 @@ function transaction(): Middleware<Ctx, TxOptions> {
     });
 }
 
-const orderRepo = repo({ name: "order-repo" }, (ctx: Ctx) => ({
-  save: (orderId: string) => `order:${orderId}@${ctx.db.txLabel}`,
-}));
+const orderRepo = repo(
+  { name: "order-repo" },
+  {
+    save: callable(
+      { name: "save" },
+      (ctx: Ctx) => async (orderId: string) => `order:${orderId}@${ctx.db.txLabel}`,
+    ),
+  },
+);
 
-const inventoryRepo = repo({ name: "inventory-repo" }, (ctx: Ctx) => ({
-  reserve: (sku: string) => `reserve:${sku}@${ctx.db.txLabel}`,
-}));
+const inventoryRepo = repo(
+  { name: "inventory-repo" },
+  {
+    reserve: callable(
+      { name: "reserve" },
+      (ctx: Ctx) => async (sku: string) => `reserve:${sku}@${ctx.db.txLabel}`,
+    ),
+  },
+);
 
 type Deps = {
-  orderRepo: ReturnType<typeof orderRepo>;
-  inventoryRepo: ReturnType<typeof inventoryRepo>;
+  orderRepo: InferRepo<typeof orderRepo>;
+  inventoryRepo: InferRepo<typeof inventoryRepo>;
 };
 
 const checkout = usecase<Ctx & Deps, [], string[], TxOptions>(
   { name: "checkout" },
   (ctx) => async () => {
     // The outer step uses the outer DB client.
-    const outerStep = ctx.orderRepo.save("o-1");
+    const outerStep = await ctx.orderRepo.save("o-1");
     // Inner run requests a different isolation level and thus receives a modified db.
     const innerSteps = await ctx.run({ isolation: "serializable" }, async (inner) => {
-      const step1 = inner.orderRepo.save("o-2");
-      const step2 = inner.inventoryRepo.reserve("sku-1");
+      const step1 = await inner.orderRepo.save("o-2");
+      const step2 = await inner.inventoryRepo.reserve("sku-1");
       return [step1, step2];
     });
     return [outerStep, ...innerSteps];
