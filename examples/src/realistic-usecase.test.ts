@@ -1,11 +1,4 @@
-import {
-  buildRuntime,
-  type ComponentMeta,
-  callable,
-  type InferRepo,
-  repo,
-  usecase,
-} from "@spaceteams/warp";
+import { buildRuntime, type ComponentMeta, type InferRepo, repo, usecase } from "@spaceteams/warp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Realistic use case
@@ -28,10 +21,10 @@ type Ctx = {
 const customerRepo = repo(
   { name: "customer-repo", tags: ["customer"] },
   {
-    getById: callable({ name: "getById" }, () => async (customerId: string) => ({
+    getById: () => async (customerId: string) => ({
       id: customerId,
       active: true,
-    })),
+    }),
   },
 );
 type CustomerRepo = InferRepo<typeof customerRepo>;
@@ -39,7 +32,7 @@ type CustomerRepo = InferRepo<typeof customerRepo>;
 const priceRepo = repo(
   { name: "price-repo" },
   {
-    get: callable({ name: "get" }, () => async (_productId: string) => 100),
+    get: () => async (_productId: string) => 100,
   },
 );
 type PriceRepo = InferRepo<typeof priceRepo>;

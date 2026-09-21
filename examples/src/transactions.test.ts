@@ -1,11 +1,4 @@
-import {
-  buildRuntime,
-  callable,
-  type InferRepo,
-  type Middleware,
-  repo,
-  usecase,
-} from "@spaceteams/warp";
+import { buildRuntime, type InferRepo, type Middleware, repo, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Transactions example
@@ -34,20 +27,14 @@ function transaction(): Middleware<Ctx, TxOptions> {
 const orderRepo = repo(
   { name: "order-repo" },
   {
-    save: callable(
-      { name: "save" },
-      (ctx: Ctx) => async (orderId: string) => `order:${orderId}@${ctx.db.txLabel}`,
-    ),
+    save: (ctx: Ctx) => async (orderId: string) => `order:${orderId}@${ctx.db.txLabel}`,
   },
 );
 
 const inventoryRepo = repo(
   { name: "inventory-repo" },
   {
-    reserve: callable(
-      { name: "reserve" },
-      (ctx: Ctx) => async (sku: string) => `reserve:${sku}@${ctx.db.txLabel}`,
-    ),
+    reserve: (ctx: Ctx) => async (sku: string) => `reserve:${sku}@${ctx.db.txLabel}`,
   },
 );
 

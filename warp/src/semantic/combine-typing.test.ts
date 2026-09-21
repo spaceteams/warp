@@ -3,10 +3,7 @@ import type { InferOut } from "../component";
 import type { Middleware } from "../middleware";
 import { buildRuntime } from "../runtime";
 import { callable } from "./callable";
-import { client, type InferClient } from "./client";
 import { combine, type InferCombined } from "./combine";
-import { type InferRepo, repo } from "./repo";
-import { type InferService, service } from "./service";
 import { usecase } from "./usecase";
 
 type Db = { db: { query: () => string } };
@@ -16,19 +13,20 @@ const db = { query: () => "from-db" };
 const cache = { get: () => "from-cache" };
 const wrongDb = { query: () => 123 };
 const wrongCache = { get: "invalid" };
-const find = callable<Db, [string], string>(
+
+const findCallable = callable<Db, [string], string>(
   { name: "find" },
   (ctx) => async (_id) => ctx.db.query(),
 );
-const create = usecase<Db, [string, string], string>(
+const createUsecase = usecase<Db, [string, string], string>(
   { name: "create" },
   (ctx) => async (_id, _name) => ctx.db.query(),
 );
-const cached = callable<Cache, [], string>(
+const cachedCallable = callable<Cache, [], string>(
   { name: "cached" },
   (ctx) => async () => ctx.cache.get(),
 );
-const factories = { find, create, cached };
+const factories = { find: findCallable, create: createUsecase, cached: cachedCallable };
 type Output = {
   find: (id: string) => Promise<string>;
   create: (id: string, name: string) => Promise<string>;
@@ -58,26 +56,14 @@ describe.each([
   });
 });
 
-it("extracts each composer's multi-factory output", () => {
+it("extracts the combined multi-factory output", () => {
   const combined = combine({ name: "combined" }, factories);
-  const repository = repo({ name: "repository" }, factories);
-  const business = service({ name: "business" }, factories);
-  const api = client({ name: "api" }, factories);
-
   expectTypeOf<InferCombined<typeof combined>>().toEqualTypeOf<Output>();
-  expectTypeOf<InferRepo<typeof repository>>().toEqualTypeOf<Output>();
-  expectTypeOf<InferService<typeof business>>().toEqualTypeOf<Output>();
-  expectTypeOf<InferClient<typeof api>>().toEqualTypeOf<Output>();
 });
 
-describe.each([
-  ["combine", combine],
-  ["repo", repo],
-  ["service", service],
-  ["client", client],
-] as const)("%s input typing", (_name, compose) => {
+describe("combine input typing", () => {
   it("preserves outputs when all dependencies are provided", async () => {
-    const factory = compose({ name: "users" }, factories);
+    const factory = combine({ name: "users" }, factories);
     const { component, resolve } = buildRuntime().provide({ db, cache });
     const resolved = await resolve(component(factory));
 
@@ -89,7 +75,7 @@ describe.each([
   });
 
   it("infers inline context-free callables and usecases without contextual never", async () => {
-    const factory = compose(
+    const factory = combine(
       {},
       {
         echo: callable({}, () => async (id: string) => id),
@@ -113,7 +99,7 @@ describe.each([
   });
 
   it("preserves inline context annotations and accepts explicit component dependencies", async () => {
-    const factory = compose(
+    const factory = combine(
       {},
       {
         find: callable({}, (ctx: Db) => async (id: string) => `${ctx.db.query()}:${id}`),
@@ -143,16 +129,16 @@ describe.each([
     const malformed = Object.assign(() => 42, { meta: { name: 123 } });
 
     // @ts-expect-error invalid members must be rejected, not filtered from the record
-    const nonfunction = compose({}, { valid: () => 1, invalid: 42 });
+    const nonfunction = combine({}, { valid: () => 1, invalid: 42 });
     // @ts-expect-error factory metadata must have a string name
-    const invalidMeta = compose({}, { valid: () => 1, invalid: malformed });
+    const invalidMeta = combine({}, { valid: () => 1, invalid: malformed });
     component(nonfunction);
     component(invalidMeta);
   });
 
   it("rejects missing single, multiple, and wrong-shaped dependencies", () => {
-    const single = compose({ name: "single" }, { find });
-    const multiple = compose({ name: "multiple" }, factories);
+    const single = combine({ name: "single" }, { find: findCallable });
+    const multiple = combine({ name: "multiple" }, factories);
     const empty = buildRuntime().provide({});
 
     // These checks stop at registration so invalid context is never used at runtime.
@@ -175,13 +161,13 @@ describe.each([
       echo: callable({ name: "echo" }, () => async (value: string) => value),
       constant: () => 42,
     };
-    const mixed = compose({ name: "mixed" }, { find, ...contextFree });
+    const mixed = combine({ name: "mixed" }, { find: findCallable, ...contextFree });
     const empty = buildRuntime().provide({});
 
     // @ts-expect-error context-free siblings must not erase the db requirement
     empty.component(mixed);
 
-    const free = await empty.resolve(empty.component(compose({ name: "free" }, contextFree)));
+    const free = await empty.resolve(empty.component(combine({ name: "free" }, contextFree)));
     expectTypeOf(free.echo).toEqualTypeOf<(value: string) => Promise<string>>();
     expectTypeOf(free.constant).toEqualTypeOf<number>();
     expect(await free.echo("hello")).toBe("hello");
@@ -196,9 +182,12 @@ describe.each([
   });
 
   it("preserves nested requirements and outputs", async () => {
-    const factory = compose(
+    const factory = combine(
       { name: "outer" },
-      { users: compose({ name: "inner" }, { find, create }), cached },
+      {
+        users: combine({ name: "inner" }, { find: findCallable, create: createUsecase }),
+        cached: cachedCallable,
+      },
     );
 
     // @ts-expect-error nested db dependency is missing
@@ -217,7 +206,7 @@ describe.each([
   });
 
   it("intersects plain context factories without requiring callable wrappers", async () => {
-    const factory = compose(
+    const factory = combine(
       { name: "plain" },
       {
         query: (ctx: Db) => ctx.db.query(),
@@ -240,7 +229,7 @@ describe.each([
   });
 
   it("preserves a factory's union context instead of requiring both alternatives", async () => {
-    const factory = compose(
+    const factory = combine(
       { name: "either" },
       {
         read: (ctx: Db | Cache) => ("db" in ctx ? ctx.db.query() : ctx.cache.get()),
@@ -265,7 +254,7 @@ describe.each([
   });
 
   it("resolves empty modules without dependencies", async () => {
-    const factory = compose({ name: "empty" }, {});
+    const factory = combine({ name: "empty" }, {});
     const { component, resolve } = buildRuntime().provide({});
     const resolved = await resolve(component(factory));
 
@@ -282,7 +271,7 @@ describe.each([
       (ctx) => async () =>
         ctx.run({ trace: true }, (inner) => `${inner.db.query()}:${inner.requestId}`),
     );
-    const factory = compose({ name: "scoped-module" }, { scoped, constant: () => 42 });
+    const factory = combine({ name: "scoped-module" }, { scoped, constant: () => 42 });
     const middleware: Middleware<Db, Options, Scope> = (ctx, options, next) =>
       next({ ...ctx, requestId: options.trace ? "traced" : "untraced" });
     const { component, resolve } = buildRuntime().use(middleware).provide({ db });

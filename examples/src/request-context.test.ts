@@ -1,4 +1,4 @@
-import { buildRuntime, usecase } from "@spaceteams/warp";
+import { buildRuntime, type InferRepo, repo, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Request context example
@@ -15,19 +15,24 @@ import { describe, expect, it } from "vitest";
 //   from the context (e.g. `userId`) — a common pattern for request-level services.
 type Ctx = { userId: string; repoFeature: boolean };
 
-const repo = (ctx: Ctx) => (id: string) => {
-  if (ctx.repoFeature) {
-    return `${id}-special-result`;
-  }
-  return `${id}-default-result`;
-};
-type Repo = ReturnType<typeof repo>;
+const requestRepo = repo(
+  { name: "request-repo" },
+  {
+    get: (ctx: Ctx) => (id: string) => {
+      if (ctx.repoFeature) {
+        return `${id}-special-result`;
+      }
+      return `${id}-default-result`;
+    },
+  },
+);
+type RequestRepo = InferRepo<typeof requestRepo>;
 
-const callWithUserId = usecase<Ctx & { repo: Repo }, [string?], string>(
+const callWithUserId = usecase<Ctx & { repo: RequestRepo }, [string?], string>(
   { name: "callWithUserId" },
   (ctx) => async (id) => {
     // If no `id` is provided we use the current request user id from context.
-    const result = ctx.repo(id ?? ctx.userId);
+    const result = ctx.repo.get(id ?? ctx.userId);
     return result;
   },
 );
@@ -39,12 +44,12 @@ describe("request context", () => {
 
   // Define the component graph using the runtime's component helper.
   const { component } = runtime;
-  const graph = component(callWithUserId, { repo: component(repo) });
+  const graph = component(callWithUserId, { repo: component(requestRepo) });
 
   it("can be explained", () => {
     expect(runtime.explain(graph, "ascii", true)).toMatchInlineSnapshot(`
       "└── callWithUserId [usecase]
-          └── repo"
+          └── repo -> request-repo [repo]"
     `);
   });
 

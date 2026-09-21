@@ -1,15 +1,14 @@
-import { buildRuntime, callable, type InferRepo, repo } from "@spaceteams/warp";
+import { buildRuntime, type InferRepo, repo, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Multi-tenant callable example
 //
-// Shows how `callable` works and how moving a value from explicit arguments
-// into context can simplify call sites when multiple components share the
-// same dependency.
+// Shows how `repo` (with its implicit callable wrapping) works and how moving
+// a value from explicit arguments into context can simplify call sites when
+// multiple components share the same dependency.
 //
 // Key points:
-// - `callable` is the low-level primitive behind `usecase`. Use it when you
-//   don't need the "usecase" semantic label.
+// - `repo` automatically wraps each method so middleware fires at invocation.
 // - Moving `tenantId` from arguments into context means every component in
 //   the graph sees it automatically — no manual threading.
 // - `.require<{ tenantId: string }>()` declares that `tenantId` must be
@@ -24,15 +23,15 @@ type BaseContext = {
 const tenantRepo = repo(
   { name: "tenant-repo" },
   {
-    get: callable({ name: "get" }, () => async (tenantId: string) => ({
+    get: () => async (tenantId: string) => ({
       id: tenantId,
       plan: tenantId === "acme" ? ("enterprise" as const) : ("starter" as const),
-    })),
+    }),
   },
 );
 type TenantRepo = InferRepo<typeof tenantRepo>;
 
-const getRateLimit = callable<BaseContext & { tenantRepo: TenantRepo }, [string], number>(
+const getRateLimit = usecase<BaseContext & { tenantRepo: TenantRepo }, [string], number>(
   { name: "get-rate-limit" },
   (ctx) => async (tenantId) => {
     const tenant = await ctx.tenantRepo.get(tenantId);
@@ -77,15 +76,15 @@ type TenantContext = BaseContext & { tenantId: string };
 const tenantRepoCtx = repo(
   { name: "tenant-repo" },
   {
-    get: callable({ name: "get" }, (ctx: TenantContext) => async () => ({
+    get: (ctx: TenantContext) => async () => ({
       id: ctx.tenantId,
       plan: ctx.tenantId === "acme" ? ("enterprise" as const) : ("starter" as const),
-    })),
+    }),
   },
 );
 type TenantRepoCtx = InferRepo<typeof tenantRepoCtx>;
 
-const getRateLimitCtx = callable<TenantContext & { tenantRepo: TenantRepoCtx }, [], number>(
+const getRateLimitCtx = usecase<TenantContext & { tenantRepo: TenantRepoCtx }, [], number>(
   { name: "get-rate-limit" },
   (ctx) => async () => {
     const tenant = await ctx.tenantRepo.get();
@@ -108,7 +107,7 @@ describe("callable — tenantId in context", () => {
 
   it("can be explained", () => {
     expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
-      "└── get-rate-limit
+      "└── get-rate-limit [usecase]
           └── tenantRepo -> tenant-repo [repo]"
     `);
   });

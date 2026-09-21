@@ -1,4 +1,4 @@
-import { buildRuntime, callable, client, type InferClient, usecase } from "@spaceteams/warp";
+import { buildRuntime, client, type InferClient, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
 // Test overrides example
@@ -13,10 +13,7 @@ import { describe, expect, it } from "vitest";
 const mailer = client(
   { name: "mailer" },
   {
-    send: callable(
-      { name: "send" },
-      () => async (to: string, subject: string) => `sent:${to}:${subject}`,
-    ),
+    send: () => async (to: string, subject: string) => `sent:${to}:${subject}`,
   },
 );
 
