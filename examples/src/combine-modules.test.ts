@@ -1,67 +1,51 @@
-import { buildRuntime, callable, combine, type InferCombined, usecase } from "@spaceteams/warp";
+import { buildRuntime, type InferRepo, repo, usecase } from "@spaceteams/warp";
 import { describe, expect, it } from "vitest";
 
-// Combine example — bundling operations into modules
+// Repository example — bundling CRUD operations into a repo component
 //
-// `combine` groups multiple component factories into a single factory that
-// returns an object of their outputs. This is useful for organising related
-// operations (e.g. a repository's CRUD methods) into one component that can
-// be wired and resolved as a unit.
+// `repo` groups multiple method factories into a single component with
+// `kind: "repo"`. Each method is wrapped so that middleware fires at
+// invocation time. This is the preferred way to organise data-access
+// operations in Warp.
 //
 // Key points:
-// - `combine({ a, b })` produces a factory whose output is `{ a: ..., b: ... }`.
-// - Context requirements from all inner factories are intersected automatically,
-//   so the combined component demands everything its parts need.
-// - The combined factory can be used with `component()` like any other factory.
-// - `InferCombined` extracts the output type for use in dependent components.
+// - `repo({ name: "userRepo" }, { find, create, deactivate })` produces a
+//   factory whose output is `{ find: ..., create: ..., deactivate: ... }`.
+// - Context requirements from all inner factories are intersected automatically.
+// - The repo factory can be used with `component()` like any other factory.
+// - `InferRepo` extracts the output type for use in dependent components.
 
 // ---------------------------------------------------------------------------
-// A simple "user" module that bundles three operations
+// A simple "user" repo that bundles three operations
 // ---------------------------------------------------------------------------
 
 type Ctx = { db: Map<string, { name: string; active: boolean }> };
 
-const findUser = callable<Ctx, [string], { name: string; active: boolean } | undefined>(
-  { name: "find-user" },
-  (ctx) => async (id) => {
-    return ctx.db.get(id);
-  },
-);
-
-const createUser = callable<Ctx, [string, string], { id: string; name: string }>(
-  { name: "create-user" },
-  (ctx) => async (id, name) => {
-    ctx.db.set(id, { name, active: true });
-    return { id, name };
-  },
-);
-
-const deactivateUser = callable<Ctx, [string], boolean>(
-  { name: "deactivate-user" },
-  (ctx) => async (id) => {
-    const user = ctx.db.get(id);
-    if (!user) return false;
-    user.active = false;
-    return true;
-  },
-);
-
-// Bundle the three operations into a single "userModule" component.
-const userModule = combine(
-  { name: "userModule" },
+const userRepo = repo(
+  { name: "userRepo" },
   {
-    find: findUser,
-    create: createUser,
-    deactivate: deactivateUser,
+    find: (ctx: Ctx) => async (id: string) => {
+      return ctx.db.get(id);
+    },
+    create: (ctx: Ctx) => async (id: string, name: string) => {
+      ctx.db.set(id, { name, active: true });
+      return { id, name };
+    },
+    deactivate: (ctx: Ctx) => async (id: string) => {
+      const user = ctx.db.get(id);
+      if (!user) return false;
+      user.active = false;
+      return true;
+    },
   },
 );
 
-// Use `InferCombined` to extract the module's output type for dependents.
-type UserModule = InferCombined<typeof userModule>;
+// Use `InferRepo` to extract the module's output type for dependents.
+type UserRepo = InferRepo<typeof userRepo>;
 
-// A usecase that depends on the combined module — it receives the whole
+// A usecase that depends on the user repo — it receives the whole
 // bundle as `users` and can call any operation on it.
-const onboardUser = usecase<{ users: UserModule }, [string, string], string>(
+const onboardUser = usecase<{ users: UserRepo }, [string, string], string>(
   { name: "onboard-user" },
   (ctx) => async (id, name) => {
     const existing = await ctx.users.find(id);
@@ -77,12 +61,12 @@ const onboardUser = usecase<{ users: UserModule }, [string, string], string>(
 // Basic Usage
 // ---------------------------------------------------------------------------
 
-describe("bundling into modules", () => {
+describe("bundling into repo", () => {
   function setup() {
     const db = new Map<string, { name: string; active: boolean }>();
     const { resolve, component, explain } = buildRuntime().provide({ db });
     const graph = component(onboardUser, {
-      users: component(userModule),
+      users: component(userRepo),
     });
     return { db, resolve, component, explain, graph };
   }
@@ -91,7 +75,7 @@ describe("bundling into modules", () => {
     const { explain, graph } = setup();
     expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`
       "└── onboard-user [usecase]
-          └── users -> userModule [module]"
+          └── users -> userRepo [repo]"
     `);
   });
 
@@ -111,12 +95,12 @@ describe("bundling into modules", () => {
     expect(await onboard("u1", "Alice")).toBe("user u1 already exists");
   });
 
-  it("supports deactivation through the module", async () => {
+  it("supports deactivation through the repo", async () => {
     const { resolve, component, db } = setup();
     db.set("u2", { name: "Bob", active: true });
 
-    // The combined module can also be resolved directly, without a wrapping usecase.
-    const users = await resolve(component(userModule));
+    // The repo can also be resolved directly, without a wrapping usecase.
+    const users = await resolve(component(userRepo));
 
     expect(await users.deactivate("u2")).toBe(true);
     expect(db.get("u2")).toEqual({ name: "Bob", active: false });
@@ -126,20 +110,20 @@ describe("bundling into modules", () => {
   });
 });
 
-describe("using modules directly", () => {
+describe("using repo directly", () => {
   function setup() {
     const db = new Map<string, { name: string; active: boolean }>();
     const { resolve, component, explain } = buildRuntime().provide({ db });
-    const graph = component(userModule);
+    const graph = component(userRepo);
     return { db, resolve, component, explain, graph };
   }
 
   it("can be explained", () => {
     const { explain, graph } = setup();
-    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`"└── userModule [module]"`);
+    expect(explain(graph, "ascii", true)).toMatchInlineSnapshot(`"└── userRepo [repo]"`);
   });
 
-  it("can use module", async () => {
+  it("can use repo", async () => {
     const { resolve, graph, db } = setup();
     const module = await resolve(graph);
 
@@ -152,23 +136,18 @@ describe("using modules directly", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Combining modules that need different context slices
+// Repos that need different context slices
 // ---------------------------------------------------------------------------
 
 describe("context intersection", () => {
-  // Two callables that each require a different part of the context.
-  const fromDb = callable<{ db: { query: () => string } }, [], string>(
-    { name: "from-db" },
-    (ctx) => async () => ctx.db.query(),
+  // Two repos that each require a different part of the context.
+  const dataRepo = repo(
+    { name: "dataRepo" },
+    {
+      fromDb: (ctx: { db: { query: () => string } }) => async () => ctx.db.query(),
+      fromCache: (ctx: { cache: { get: () => string } }) => async () => ctx.cache.get(),
+    },
   );
-  const fromCache = callable<{ cache: { get: () => string } }, [], string>(
-    { name: "from-cache" },
-    (ctx) => async () => ctx.cache.get(),
-  );
-
-  // `combine` intersects the two context types: the resulting factory
-  // requires both `db` and `cache`.
-  const dataModule = combine({ name: "dataModule" }, { fromDb, fromCache });
 
   it("intersects context requirements from all inner factories", async () => {
     const { resolve, component } = buildRuntime().provide({
@@ -176,7 +155,7 @@ describe("context intersection", () => {
       cache: { get: () => "cache-result" },
     });
 
-    const data = await resolve(component(dataModule));
+    const data = await resolve(component(dataRepo));
     expect(await data.fromDb()).toBe("db-result");
     expect(await data.fromCache()).toBe("cache-result");
   });
