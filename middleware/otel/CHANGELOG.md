@@ -1,5 +1,11 @@
 # @spaceteams/warp-otel
 
+## 1.4.1
+
+### Patch Changes
+
+- e0aac9f: always run otel on components
+
 ## 1.4.0
 
 ### Minor Changes
