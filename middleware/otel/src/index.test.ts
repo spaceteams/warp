@@ -75,7 +75,7 @@ describe("otel middleware", () => {
     expect(result).toEqual(1);
   });
 
-  it("skips otel when otel options not provided", async () => {
+  it("runs otel when otel options not provided", async () => {
     const env = setupOtelTestEnvironment();
     const middleware = otel<Ctx>({
       instrumentationName: "my-app",
@@ -84,14 +84,19 @@ describe("otel middleware", () => {
     });
 
     const result = await middleware({ additional: "value" }, {}, (inner) => {
-      expect(inner.span).toBeUndefined();
+      expect(inner.span).toBeDefined();
       return 42;
     });
 
     expect(result).toEqual(42);
 
     const spans = await collectSpans(env.spanExporter);
-    expect(spans).toHaveLength(0);
+    expect(spans).toHaveLength(1);
+    expect(spans[0].name).toBe("warp.run");
+
+    const collectedMetrics = await collectMetrics(env.metricReader, env.metricExporter);
+    expect(findMetric(collectedMetrics, "warp.run.count")).toBeDefined();
+    expect(findMetric(collectedMetrics, "warp.run.duration")).toBeDefined();
   });
 
   it("creates span with custom name and attributes", async () => {

@@ -96,20 +96,17 @@ export function otel<
     warp?: WarpMeta | undefined,
   ): Promise<T> {
     const runOtel = options.otel;
-    if (!runOtel) {
-      return await next(ctx as AmbientContext & OtelScopeContext);
-    }
 
-    const recordErrors = runOtel.recordErrors ?? defaultRecordErrors;
-    const recordMetrics = runOtel.recordMetrics ?? metricsEnabled;
+    const recordErrors = runOtel?.recordErrors ?? defaultRecordErrors;
+    const recordMetrics = runOtel?.recordMetrics ?? metricsEnabled;
 
-    const spanName = runOtel.spanName ?? warp?.componentPath ?? "warp.run";
+    const spanName = runOtel?.spanName ?? warp?.componentPath ?? "warp.run";
 
     const attributes: Attributes = {
       componentPath: warp?.componentPath,
       componentKind: warp?.component?.kind,
       componentName: warp?.component?.name,
-      ...runOtel.attributes,
+      ...runOtel?.attributes,
     };
 
     const start = performance.now();
