@@ -1,5 +1,11 @@
 # @spaceteams/warp-als
 
+## 1.4.0
+
+### Minor Changes
+
+- 70dc889: make repo, client, service special cases of combine
+
 ## 1.3.0
 
 ### Minor Changes
