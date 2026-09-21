@@ -35,11 +35,11 @@ const { resolve, component } = buildRuntime()
   .provide({});
 ```
 
-Tracing and metrics are enabled by default for any component that declares `otel` in its meta.
+Tracing and metrics are enabled by default for all components once the middleware is registered on the runtime.
 
 ### Per-component options
 
-Declare `otel` in the callable/usecase meta to enable instrumentation:
+You can optionally declare `otel` in the callable/usecase meta to customize instrumentation for that component:
 
 ```ts
 const fetchProfile = usecase<Context, [string], Profile, Partial<OtelRunOptions>>(
@@ -56,7 +56,7 @@ const fetchProfile = usecase<Context, [string], Profile, Partial<OtelRunOptions>
 );
 ```
 
-If no `spanName` is provided, the middleware uses the component's `componentPath` from warp metadata. Components without `otel` in their meta are not instrumented.
+If no `spanName` is provided, the middleware uses the component's `componentPath` from warp metadata. If no `componentPath` is available, it falls back to `"warp.run"`.
 
 ### Accessing the span
 
